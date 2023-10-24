@@ -13,9 +13,9 @@ every_minute_but_ten_times = Schedule(
             labels=["escritoriodedados"],
             parameter_defaults={
                 "a": "3",
-                "b": "5",
+                "b": str(i + 5),
             },
         )
-        for _ in range(10)
+        for i in range(10)
     ]
 )
