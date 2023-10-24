@@ -16,7 +16,7 @@ from pipelines.stress.many_tasks.tasks import (
 )
 
 with Flow(
-    name="Stress Test: Many Tasks",
+    name="Stress Test: Many Tasks Test",
     state_handlers=[handler_inject_bd_credentials],
 ) as stress__many_tasks__main_flow:
     # Parameters
