@@ -2,6 +2,7 @@
 """
 Data in: https://drive.google.com/drive/folders/1C-W_MMFAAJy5Lq_rHDzXUesEUyzke5gw
 """
+from io import StringIO
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -13,10 +14,12 @@ from redis_pal import RedisPal
 import requests
 from shapely.geometry import Point, Polygon
 
-from pipelines.utils.utils import get_redis_client, log, remove_columns_accents
+from prefeitura_rio.pipelines_utils.redis_pal import get_redis_client
+from prefeitura_rio.pipelines_utils.logging import log
+from prefeitura_rio.pipelines_utils.pandas import remove_columns_accents
 
 
-def download_file(url: str, output_path: Union[str, Path]) -> bool:
+def download_file(url: str, output_path: Union[str, Path]) -> None:
     """
     Downloads a file from a URL.
 
@@ -27,10 +30,11 @@ def download_file(url: str, output_path: Union[str, Path]) -> bool:
     Returns:
         Whether the file was downloaded successfully.
     """
-    response = requests.get(url)
+    request_url = url.replace("edit#gid=", "export?format=csv&gid=")
+    response = requests.get(request_url)
     if response.status_code == 200:
-        with open(output_path, "wb") as f:
-            f.write(response.content)
+        dataframe = pd.read_csv(StringIO(response.content.decode("utf-8")))
+        dataframe.to_csv(output_path, index=False)
         return True
     return False
 
@@ -127,7 +131,9 @@ def get_rain_dataframe() -> pd.DataFrame:
     data = requests.get(api_url).json()
     df_rain = pd.DataFrame(data)
 
-    last_update_url = "https://api.dados.rio/v2/clima_pluviometro/ultima_atualizacao_precipitacao_15min/"  # noqa
+    last_update_url = (
+        "https://api.dados.rio/v2/clima_pluviometro/ultima_atualizacao_precipitacao_15min/"  # noqa
+    )
     last_update = requests.get(last_update_url).json()
     df_rain["last_update"] = last_update
     df_rain["last_update"] = pd.to_datetime(df_rain["last_update"])
@@ -190,8 +196,7 @@ def get_cameras_h3_bolsao(cameras_h3: gpd.GeoDataFrame, buffer: int = 0.002):
     cameras_bolsao_h3 = gpd.sjoin(cameras_h3, bolsao_geo, how="left", op="within")
 
     cameras_bolsao_h3["geometry_bolsao_buffer_0.002"] = [
-        Point(xy).buffer(buffer)
-        for xy in zip(cameras_bolsao_h3["long"], cameras_bolsao_h3["lat"])
+        Point(xy).buffer(buffer) for xy in zip(cameras_bolsao_h3["long"], cameras_bolsao_h3["lat"])
     ]
     cameras_bolsao_h3["geometry_bolsao_buffer_0.002"] = cameras_bolsao_h3[
         f"geometry_bolsao_buffer_{buffer}"
@@ -218,9 +223,7 @@ def clean_and_padronize_cameras() -> gpd.GeoDataFrame:
     - gpd.GeoDataFrame: A GeoDataFrame containing the cleaned, standardized, and geographically
       enriched camera data.
     """
-    df = pd.read_csv(
-        "./data/Cameras_em_2023-11-13.csv", delimiter=";", encoding="latin1"
-    )
+    df = pd.read_csv("./data/Cameras_em_2023-11-13.csv", delimiter=";", encoding="latin1")
     df.columns = remove_columns_accents(df)
     df["codigo"] = df["codigo"].str.replace("'", "")
     df = df[df["status"] == "Online"]
@@ -257,9 +260,7 @@ def clean_and_padronize_cameras() -> gpd.GeoDataFrame:
         "id_h3",
     ]
     cameras_h3 = cameras_h3[cols]
-    cameras_h3 = cameras_h3.rename(
-        columns={"codigo": "id_camera", "nome_da_camera": "nome"}
-    )
+    cameras_h3 = cameras_h3.rename(columns={"codigo": "id_camera", "nome_da_camera": "nome"})
 
     cameras_h3 = cameras_h3.reset_index(drop=True)
     log("cameras_h3: ", cameras_h3.shape)

@@ -20,20 +20,12 @@ update_flooding_data_schedule = Schedule(
                 constants.RJ_ESCRITORIO_AGENT_LABEL.value,
             ],
             parameter_defaults={
-                "cameras_geodf_url": "https://prefeitura-rio.github.io/storage/cameras_geo_min_bolsao_sample.csv",  # noqa
+                "cameras_geodf_url": "https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",  # noqa
                 "mocked_cameras_number": 0,
                 "api_key_secret_path": "/flooding-detection",
                 "openai_api_max_tokens": 300,
                 "openai_api_model": "gpt-4-vision-preview",
                 "openai_api_url": "https://api.openai.com/v1/chat/completions",
-                "openai_flooding_detection_prompt": """You are an expert flooding detector. You are
-                given a image. You must detect if there is flooding in the image. The output MUST
-                be a JSON object with a boolean value for the key "flooding_detected". If you don't
-                know what to anwser, you can set the key "flooding_detect" as false. Example:
-                {
-                    "flooding_detected": true
-                }
-                """,
                 "rain_api_update_url": "https://api.dados.rio/v2/clima_pluviometro/ultima_atualizacao_precipitacao_15min/",  # noqa
                 "rain_api_url": "https://api.dados.rio/v2/clima_pluviometro/precipitacao_15min/",
                 "redis_key_flooding_detection_data": "flooding_detection_data",

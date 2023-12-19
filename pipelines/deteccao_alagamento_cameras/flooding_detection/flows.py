@@ -37,6 +37,7 @@ with Flow(
     cameras_geodf_url = Parameter(
         "cameras_geodf_url",
         required=True,
+        default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",
     )
     mocked_cameras_number = Parameter(
         "mocked_cameras_number",
@@ -49,7 +50,6 @@ with Flow(
         default="https://api.openai.com/v1/chat/completions",
     )
     api_key_secret_path = Parameter("api_key_secret_path", required=True)
-    openai_flooding_detection_prompt = Parameter("openai_flooding_detection_prompt", required=True)
     rain_api_data_url = Parameter(
         "rain_api_url",
         default="https://api.dados.rio/v2/clima_pluviometro/precipitacao_15min/",
@@ -78,14 +78,12 @@ with Flow(
         predictions_buffer_key=redis_key_predictions_buffer,
         number_mock_rain_cameras=mocked_cameras_number,
     )
-    api_key = get_api_key(secret_path=api_key_secret_path, model_name="gpt")
+    api_key = get_api_key(secret_path=api_key_secret_path, secret_name="GEMINI-PRO-VISION-API-KEY")
     cameras_with_image = get_snapshot.map(
         camera=cameras,
     )
     cameras_with_image_and_classification = get_prediction.map(
         camera_with_image=cameras_with_image,
-        flooding_prompt=unmapped(openai_flooding_detection_prompt),
-        openai_api_key=unmapped(api_key),
         openai_api_model=unmapped(openai_api_model),
         openai_api_max_tokens=unmapped(openai_api_max_tokens),
         openai_api_url=unmapped(openai_api_url),

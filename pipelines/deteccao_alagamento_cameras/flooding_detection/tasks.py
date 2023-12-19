@@ -49,23 +49,17 @@ def get_last_update(
 
 
 @task
-def get_api_key(secret_path: str, model_name: str) -> str:
+def get_api_key(secret_path: str, secret_name: str = "GEMINI-PRO-VISION-API-KEY") -> str:
     """
-    Gets the OpenAI API key.
+    Gets the GEMINI API KEY.
 
     Args:
         secret_path: The secret path.
+        secret_name: The secret name.
 
     Returns:
-        The OpenAI API key.
+        The API key.
     """
-
-    if "gpt" in model_name:
-        secret_name = "GPT-4-VISION-API-KEY"
-    elif "gemini" in model_name:
-        secret_name = "GEMINI-PRO-VISION-API-KEY"
-    else:
-        return None
 
     secret = get_secret(secret_name=secret_name, path=secret_path)
     return secret[secret_name]
@@ -266,7 +260,12 @@ def pick_cameras(
     cameras_data_path = Path("/tmp") / "cameras_geo_min.csv"
     if not download_file(url=cameras_data_url, output_path=cameras_data_path):
         raise RuntimeError("Failed to download the cameras data.")
+
     cameras = pd.read_csv(cameras_data_path)
+
+    # get only selected cameras from google sheets
+    cameras = cameras[cameras["identificador"].notna()]
+
     cameras = cameras.drop(columns=["geometry"])
     geometry = [Point(xy) for xy in zip(cameras["longitude"], cameras["latitude"])]
     df_cameras = gpd.GeoDataFrame(cameras, geometry=geometry)
@@ -317,6 +316,7 @@ def pick_cameras(
                 "latitude": row["geometry"].y,
                 "longitude": row["geometry"].x,
                 "attempt_classification": (row["status"] not in ["sem chuva", "chuva fraca"]),
+                "identificador": row["identificador"],
             }
         )
     log(f"Picked cameras: {output}")
