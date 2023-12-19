@@ -252,6 +252,7 @@ def pick_cameras(
                     "latitude": -22.912,
                     "longitude": -43.230,
                     "attempt_classification": True,
+                    "identifier": "alagamento"
                 },
                 ...
             ]
@@ -316,7 +317,7 @@ def pick_cameras(
                 "latitude": row["geometry"].y,
                 "longitude": row["geometry"].x,
                 "attempt_classification": (row["status"] not in ["sem chuva", "chuva fraca"]),
-                "identificador": row["identificador"],
+                "identifier": row["identificador"],
             }
         )
     log(f"Picked cameras: {output}")
