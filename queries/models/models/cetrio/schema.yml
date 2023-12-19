@@ -1,0 +1,64 @@
+version: 2
+models :
+  - name: pit
+    description: "**Descrição**: Estatísticas ( número de veículos totais capturados pelo equipamento \ 
+    e número de veículos em que se conseguiu registrar a placa ) feitas por período de tempo por \
+    determinado equipamento de fiscalização eletrônica. Os equipamentos são operados por empresas \
+    terceirizadas que repassam seus dados para a prefeitura do Rio de Janeiro.\n\ 
+    **Frequência de atualização**: Diário \n\
+    **Cobertura temporal**: De 2020-04-28 até o momento presente. Eventualmente pode \
+    haver um atraso por atraso na entrega pelas empresas terceirizadas.\n\
+    **Órgão gestor dos dados**:	CET-Rio - GISV\n\
+    **Publicado por (Nome)**:	Alexandre Ferreira\n\
+    **Publicado por (E-mail)**:	alexandreferreira.br@gmail.com\n\n\
+    **Perguntas e Respostas**: \n\
+    Quais vieses temos nos dados? \n\
+    Em caso de falta de energia numa determinada região o radar fica desativado parando a contagem e a captura de veículos. \
+    Na inoperância dos semáforos, os radares que sejam ligados a eles também ficam inativos.\n\
+
+    Existe algum processo de aferição no aparelho afim de verificar a existência de erros?\n\
+    Existe o processo de certificação feito pelo INMETRO a cada cinco anos e a aferição do IPEM na sua parte metrológica a cada 12 meses.\n\
+
+    Se existe um erro de contagem, ele é parecido entre os aparelhos, ou seja, é intrínseco ao aparelho? Ou varia dependendo da via, localidade, dia, etc. \n\
+    A contagem é feita pelo laço de indução metálica disposto no piso não sendo uma questão do equipamento afixado no poste para a captura de placas;\n\
+    
+    Quais são os possíveis motivos de erro na contagem? Existe algum outro método de contagem para comparação?\n\
+    O erro de contagem geralmente pode se dar com as motocicletas quando estas desviam dos lações de indução metálica no piso \
+    (ex: passando no meio da faixa divisora de fluxo, pela calçada, pela contramão da direção) enchentes e enxurradas também geram erros,\ 
+    na contagem e os danos no pavimento (deformação do asfalto, buracos no local onde estão os laços...) podem influir.\n\
+
+    Esse aparelho é fixo ou móvel?\n\
+    Fixos com laço de indução metálica e câmeras afixadas em postes. O rio não utiliza radar móvel."
+
+    columns:
+      - name: codigo_cet
+        description: Código de identificação da cetrio
+      - name: logradouro
+        description: Logradouro em que o radar se encontra
+      - name: bairro
+        description: Bairro em que o radar se encontra
+      - name: codigo_equipamento
+        description: Código do radar
+      - name: local_equipamento
+        description: Endereço completo do radar
+      - name: latitude
+        description: Latitude do radar
+      - name: longitude
+        description: Longitude do radar
+      - name: coordenada_geografica
+        description: Coordenadas geográficas do radar (longitude, latitude)
+      - name: area_planejamento
+        description: Área de Planejamento em que o radar se encontra. As áreas de planejamento foram estabelecidas pela divisão do território municipal a partir de critérios de compartimentação ambiental, de características histórico-geográficas e de uso e ocupação do solo.
+      - name: data
+        description: Data da aferição
+      - name: periodo
+        description: Período da aferição. De 14h às 15h, por exemplo.
+      - name: horario_inicio
+        description: Horário do início da aferição.
+      - name: horario_fim
+        description: Horário do término da aferição.
+      - name: quantidade_veiculos_registrados
+        description: Quantidade total de veículos que foram capturados pelo equipamento durante o período de tempo indicado.
+      - name: quantidade_placas_registradas
+        description: Quantidade total de veículos em que se conseguiu registrar a placa durante o período de tempo indicado.
+      
