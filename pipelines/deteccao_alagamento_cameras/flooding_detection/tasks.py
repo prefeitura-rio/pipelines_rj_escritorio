@@ -69,7 +69,7 @@ def get_api_key(secret_path: str, secret_name: str = "GEMINI-PRO-VISION-API-KEY"
 def get_prediction(
     camera_with_image: Dict[str, Union[str, float]],
     flooding_prompt: str,
-    openai_api_key: str,
+    api_key: str,
     openai_api_model: str,
     openai_api_max_tokens: int = 300,
     openai_api_url: str = "https://api.openai.com/v1/chat/completions",
@@ -132,7 +132,7 @@ def get_prediction(
         return camera_with_image
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {openai_api_key}",
+        "Authorization": f"Bearer {api_key}",
     }
     payload = {
         "model": openai_api_model,

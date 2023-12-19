@@ -85,6 +85,7 @@ with Flow(
     cameras_with_image_and_classification = get_prediction.map(
         camera_with_image=cameras_with_image,
         openai_api_model=unmapped(openai_api_model),
+        api_key=unmapped(api_key),
         openai_api_max_tokens=unmapped(openai_api_max_tokens),
         openai_api_url=unmapped(openai_api_url),
     )
