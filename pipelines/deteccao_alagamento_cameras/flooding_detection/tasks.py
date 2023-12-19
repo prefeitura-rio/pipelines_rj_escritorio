@@ -1,32 +1,33 @@
 # -*- coding: utf-8 -*-
 import base64
-from datetime import datetime, timedelta
 import io
 import json
-from pathlib import Path
 import random
-from typing import Dict, List, Tuple, Union
+from datetime import datetime
+from datetime import timedelta
+from pathlib import Path
+from typing import Dict
+from typing import List
+from typing import Union
 
 import cv2
 import geopandas as gpd
+import google.generativeai as genai
 import numpy as np
 import pandas as pd
 import pendulum
+import requests
 from PIL import Image
 from prefect import task
-import requests
+from prefeitura_rio.pipelines_utils.infisical import get_secret
+from prefeitura_rio.pipelines_utils.logging import log
+from prefeitura_rio.pipelines_utils.redis_pal import get_redis_client
 from shapely.geometry import Point
 
-from pipelines.deteccao_alagamento_cameras.flooding_detection.utils import (
-    download_file,
-    redis_add_to_prediction_buffer,
-    redis_get_prediction_buffer,
-)
-
+from pipelines.deteccao_alagamento_cameras.flooding_detection.utils import download_file
+from pipelines.deteccao_alagamento_cameras.flooding_detection.utils import redis_add_to_prediction_buffer
+from pipelines.deteccao_alagamento_cameras.flooding_detection.utils import redis_get_prediction_buffer
 # get_vault_secret
-from prefeitura_rio.pipelines_utils.infisical import get_secret
-from prefeitura_rio.pipelines_utils.redis_pal import get_redis_client
-from prefeitura_rio.pipelines_utils.logging import log
 
 
 @task
@@ -69,13 +70,12 @@ def get_api_key(secret_path: str, secret_name: str = "GEMINI-PRO-VISION-API-KEY"
 def get_prediction(
     camera_with_image: Dict[str, Union[str, float]],
     flooding_prompt: str,
-    api_key: str,
-    openai_api_model: str,
-    openai_api_max_tokens: int = 300,
-    openai_api_url: str = "https://api.openai.com/v1/chat/completions",
+    google_api_key: str,
+    google_api_model: str,
+    google_api_max_output_tokens: int = 300,
 ) -> Dict[str, Union[str, float, bool]]:
     """
-    Gets the flooding detection prediction from OpenAI API.
+    Gets the flooding detection prediction from Google Gemini API.
 
     Args:
         camera_with_image: The camera with image in the following format:
@@ -88,10 +88,10 @@ def get_prediction(
                 "attempt_classification": True,
             }
         flooding_prompt: The flooding prompt.
-        openai_api_key: The OpenAI API key.
-        openai_api_model: The OpenAI API model.
-        openai_api_max_tokens: The OpenAI API max tokens.
-        openai_api_url: The OpenAI API URL.
+        google_api_key: The OpenAI API key.
+        google_api_model: The OpenAI API model.
+        google_api_max_tokens: The OpenAI API max tokens.
+        google_api_url: The OpenAI API URL.
 
     Returns: The camera with image and classification in the following format:
         {
@@ -130,42 +130,33 @@ def get_prediction(
             }
         ]
         return camera_with_image
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
-    }
-    payload = {
-        "model": openai_api_model,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": flooding_prompt,
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{camera_with_image['image_base64']}"
-                        },
-                    },
-                ],
-            }
-        ],
-        "max_tokens": openai_api_max_tokens,
-    }
-    response = requests.post(openai_api_url, headers=headers, json=payload)
-    data: dict = response.json()
-    if data.get("error"):
-        flooding_detected = None
-        log(f"Failed to get prediction: {data['error']}")
-    else:
-        content: str = data["choices"][0]["message"]["content"]
-        json_string = content.replace("```json\n", "").replace("\n```", "")
-        json_object = json.loads(json_string)
-        flooding_detected = json_object["flooding_detected"]
+
+    flooding_detected = None
+
+    try:
+        genai.configure(api_key=google_api_key)
+        model = genai.GenerativeModel(google_api_model)
+        responses = model.generate_content(
+            contents=[flooding_prompt, camera_with_image["image_base64"]],
+            generation_config={
+                "max_output_tokens": google_api_max_output_tokens,
+                "temperature": 0.4,
+                "top_p": 1,
+                "top_k": 32
+            },
+            stream=True,
+        )
+
+        responses.resolve()
+
+        json_string = responses.text.replace("```json\n", "").replace("\n```", "")
+        flooding_detected = json.loads(json_string)["flooding_detected"]
+
         log(f"Successfully got prediction: {flooding_detected}")
+
+    except Exception as e:
+        log(f"Failed to get prediction: {e}")
+
     camera_with_image["ai_classification"] = [
         {
             "object": "alagamento",
@@ -173,6 +164,7 @@ def get_prediction(
             "confidence": 0.7,
         }
     ]
+
     return camera_with_image
 
 

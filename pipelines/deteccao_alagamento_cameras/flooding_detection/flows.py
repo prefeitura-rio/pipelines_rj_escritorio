@@ -7,21 +7,18 @@ from prefect.executors import LocalDaskExecutor
 from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
 from prefect.utilities.edges import unmapped
+from prefeitura_rio.pipelines_utils.custom import Flow
 
 from pipelines.constants import constants
 from pipelines.deteccao_alagamento_cameras.flooding_detection.schedules import (
     update_flooding_data_schedule,
 )
-
-from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import (
-    get_last_update,
-    get_api_key,
-    get_prediction,
-    get_snapshot,
-    pick_cameras,
-    update_flooding_api_data,
-)
-from prefeitura_rio.pipelines_utils.custom import Flow
+from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_api_key
+from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_last_update
+from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_prediction
+from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_snapshot
+from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import pick_cameras
+from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import update_flooding_api_data
 
 # Flow
 
@@ -43,12 +40,8 @@ with Flow(
         "mocked_cameras_number",
         default=0,
     )
-    openai_api_max_tokens = Parameter("openai_api_max_tokens", default=300)
-    openai_api_model = Parameter("openai_api_model", default="gpt-4-vision-preview")
-    openai_api_url = Parameter(
-        "openai_api_url",
-        default="https://api.openai.com/v1/chat/completions",
-    )
+    google_api_max_output_tokens = Parameter("google_api_max_output_tokens", default=300)
+    google_api_model = Parameter("google_api_model", default="gemini-pro-vision")
     api_key_secret_path = Parameter("api_key_secret_path", required=True)
     rain_api_data_url = Parameter(
         "rain_api_url",
@@ -84,10 +77,9 @@ with Flow(
     )
     cameras_with_image_and_classification = get_prediction.map(
         camera_with_image=cameras_with_image,
-        openai_api_model=unmapped(openai_api_model),
-        api_key=unmapped(api_key),
-        openai_api_max_tokens=unmapped(openai_api_max_tokens),
-        openai_api_url=unmapped(openai_api_url),
+        google_api_key=unmapped(api_key),
+        google_api_model=unmapped(google_api_model),
+        google_api_max_output_tokens=unmapped(google_api_max_output_tokens),
     )
     update_flooding_api_data(
         cameras_with_image_and_classification=cameras_with_image_and_classification,

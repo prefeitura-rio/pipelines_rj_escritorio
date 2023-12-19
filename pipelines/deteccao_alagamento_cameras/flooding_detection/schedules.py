@@ -23,9 +23,8 @@ update_flooding_data_schedule = Schedule(
                 "cameras_geodf_url": "https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",  # noqa
                 "mocked_cameras_number": 0,
                 "api_key_secret_path": "/flooding-detection",
-                "openai_api_max_tokens": 300,
-                "openai_api_model": "gpt-4-vision-preview",
-                "openai_api_url": "https://api.openai.com/v1/chat/completions",
+                "google_api_max_output_tokens": 300,
+                "google_api_model": "gemini-pro-vision",
                 "rain_api_update_url": "https://api.dados.rio/v2/clima_pluviometro/ultima_atualizacao_precipitacao_15min/",  # noqa
                 "rain_api_url": "https://api.dados.rio/v2/clima_pluviometro/precipitacao_15min/",
                 "redis_key_flooding_detection_data": "flooding_detection_data",
