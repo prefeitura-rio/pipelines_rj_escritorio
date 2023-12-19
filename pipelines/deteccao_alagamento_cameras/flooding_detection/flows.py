@@ -24,10 +24,10 @@ from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import updat
 
 with Flow(
     name="EMD: flooding_detection - Atualizar detecção de alagamento (IA) na API",
-    code_owners=[
-        "gabriel",
-        "diego",
-    ],
+    # code_owners=[
+    #     "gabriel",
+    #     "diego",
+    # ],
     skip_if_running=True,
 ) as rj_escritorio__flooding_detection__flow:
     # Parameters
