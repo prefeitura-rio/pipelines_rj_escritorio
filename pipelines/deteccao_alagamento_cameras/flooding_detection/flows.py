@@ -27,6 +27,7 @@ with Flow(
     name="EMD: flooding_detection - Atualizar detecção de alagamento (IA) na API",
     state_handlers=[handler_inject_bd_credentials],
     skip_if_running=True,
+    parallelism=30,
 ) as rj_escritorio__flooding_detection__flow:
     # Parameters
     cameras_geodf_url = Parameter(
