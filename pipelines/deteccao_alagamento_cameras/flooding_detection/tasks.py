@@ -28,7 +28,7 @@ from pipelines.deteccao_alagamento_cameras.flooding_detection.utils import (
 )
 
 
-@task
+@task(checkpoint=False)
 def task_get_redis_client(
     infisical_host_env: str = "REDIS_HOST",
     infisical_port_env: str = "REDIS_PORT",
