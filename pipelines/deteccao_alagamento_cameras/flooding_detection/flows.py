@@ -77,6 +77,7 @@ with Flow(
     object_parameters = get_object_parameters(object_parameters_url)
     cameras_with_image_and_classification = get_prediction.map(
         camera_with_image=cameras_with_image,
+        object_prompt=unmapped(object_parameters["alagamento"]["prompt"]),
         google_api_key=unmapped(api_key),
         google_api_model=unmapped(google_api_model),
         google_api_max_output_tokens=unmapped(object_parameters["alagamento"]["max_output_tokens"]),
