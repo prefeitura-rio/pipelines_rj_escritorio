@@ -149,7 +149,9 @@ def get_prediction(
     # TODO:
     # - Add confidence value
     # Setup the request
+    log(f"Getting prediction for camera_with_image: {camera_with_image}")
     if not camera_with_image["attempt_classification"]:
+        log("Skipping prediction for `attempt_classification` is False.")
         camera_with_image["ai_classification"] = [
             {
                 "object": camera_with_image["identifier"],
@@ -159,6 +161,7 @@ def get_prediction(
         ]
         return camera_with_image
     if not camera_with_image["image_base64"]:
+        log("Skipping prediction for `image_base64` is None.")
         camera_with_image["ai_classification"] = [
             {
                 "object": camera_with_image["identifier"],
