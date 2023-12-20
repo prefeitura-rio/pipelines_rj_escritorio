@@ -5,7 +5,8 @@ from prefect.storage import GCS
 from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
 
 from pipelines.constants import constants
-from pipelines.stress.many_tasks.schedules import every_minute_but_ten_times
+
+# from pipelines.stress.many_tasks.schedules import every_minute_but_ten_times
 from pipelines.stress.many_tasks.tasks import (
     cast_to_float,
     compare_results_with_delta,
@@ -58,7 +59,7 @@ with Flow(
 
 
 # Storage and run configs
-stress__many_tasks__main_flow.schedule = every_minute_but_ten_times
+# stress__many_tasks__main_flow.schedule = every_minute_but_ten_times
 stress__many_tasks__main_flow.storage = GCS(constants.GCS_FLOWS_BUCKET.value)
 stress__many_tasks__main_flow.run_config = KubernetesRun(
     image=constants.DOCKER_IMAGE.value, labels=["escritoriodedados"]
