@@ -175,10 +175,11 @@ def get_prediction(
 
     flooding_detected = None
 
+    img = Image.open(io.BytesIO(base64.b64decode(camera_with_image["image_base64"])))
     genai.configure(api_key=google_api_key)
     model = genai.GenerativeModel(google_api_model)
     responses = model.generate_content(
-        contents=[camera_with_image["prompt"], camera_with_image["image_base64"]],
+        contents=[camera_with_image["prompt"], img],
         generation_config={
             "max_output_tokens": camera_with_image["max_output_token"],
             "temperature": camera_with_image["temperature"],
