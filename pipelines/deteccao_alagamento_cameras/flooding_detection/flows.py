@@ -14,7 +14,6 @@ from pipelines.deteccao_alagamento_cameras.flooding_detection.schedules import (
     update_flooding_data_schedule,
 )
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_api_key
-from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_object_parameters
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_last_update
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_prediction
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_snapshot
