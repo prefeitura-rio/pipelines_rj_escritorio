@@ -8,6 +8,7 @@ from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
 from prefect.utilities.edges import unmapped
 from prefeitura_rio.pipelines_utils.custom import Flow
+from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
 
 from pipelines.constants import constants
 from pipelines.deteccao_alagamento_cameras.flooding_detection.schedules import (
@@ -24,6 +25,7 @@ from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import (
 
 with Flow(
     name="EMD: flooding_detection - Atualizar detecção de alagamento (IA) na API",
+    state_handlers=[handler_inject_bd_credentials],
     skip_if_running=True,
 ) as rj_escritorio__flooding_detection__flow:
     # Parameters
