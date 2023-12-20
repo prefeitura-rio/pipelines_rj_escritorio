@@ -20,11 +20,11 @@ update_flooding_data_schedule = Schedule(
                 constants.RJ_ESCRITORIO_AGENT_LABEL.value,
             ],
             parameter_defaults={
-                "cameras_geodf_url": "https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",  # noqa
-                "object_parameters_url": "https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",  # noqa
-                "mocked_cameras_number": 0,
                 "api_key_secret_path": "/flooding-detection",
+                "cameras_geodf_url": "https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=914166579",  # noqa
                 "google_api_model": "gemini-pro-vision",
+                "mocked_cameras_number": 0,
+                "object_parameters_url": "https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",  # noqa
                 "rain_api_update_url": "https://api.dados.rio/v2/clima_pluviometro/ultima_atualizacao_precipitacao_15min/",  # noqa
                 "rain_api_url": "https://api.dados.rio/v2/clima_pluviometro/precipitacao_15min/",
                 "redis_key_flooding_detection_data": "flooding_detection_data",
