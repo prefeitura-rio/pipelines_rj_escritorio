@@ -282,7 +282,7 @@ def redis_add_to_prediction_buffer(
         value: The value to be added.
         len: The length of the buffer.
     """
-    prediction_buffer = redis_get_prediction_buffer(key, len_)
+    prediction_buffer = redis_get_prediction_buffer(key, len_=len_, redis_client=redis_client)
     prediction_buffer.append(value)
     prediction_buffer = prediction_buffer[-len_:]
     redis_client.set(key, prediction_buffer)
