@@ -10,7 +10,9 @@ from prefect.utilities.edges import unmapped
 from prefeitura_rio.pipelines_utils.custom import Flow
 
 from pipelines.constants import constants
-from pipelines.deteccao_alagamento_cameras.flooding_detection.schedules import update_flooding_data_schedule
+from pipelines.deteccao_alagamento_cameras.flooding_detection.schedules import (
+    update_flooding_data_schedule,
+)
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_api_key
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_object_parameters
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_last_update
@@ -40,7 +42,7 @@ with Flow(
     object_parameters_url = Parameter(
         "object_parameters_url",
         required=True,
-        default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721"
+        default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",
     )
     rain_api_data_url = Parameter(
         "rain_api_url",
@@ -66,6 +68,7 @@ with Flow(
     cameras = pick_cameras(
         rain_api_data_url=rain_api_data_url,
         cameras_data_url=cameras_geodf_url,
+        object_parameters_url=object_parameters_url,
         last_update=last_update,
         predictions_buffer_key=redis_key_predictions_buffer,
         number_mock_rain_cameras=mocked_cameras_number,
@@ -74,16 +77,11 @@ with Flow(
     cameras_with_image = get_snapshot.map(
         camera=cameras,
     )
-    object_parameters = get_object_parameters(object_parameters_url)
+
     cameras_with_image_and_classification = get_prediction.map(
         camera_with_image=cameras_with_image,
-        object_prompt=unmapped(object_parameters["alagamento"]["prompt"]),
         google_api_key=unmapped(api_key),
         google_api_model=unmapped(google_api_model),
-        google_api_max_output_tokens=unmapped(object_parameters["alagamento"]["max_output_tokens"]),
-        google_api_temperature=unmapped(object_parameters["alagamento"]["temperature"]),
-        google_api_top_p=unmapped(object_parameters["alagamento"]["top_p"]),
-        google_api_top_k=unmapped(object_parameters["alagamento"]["top_k"]),
     )
     update_flooding_api_data(
         cameras_with_image_and_classification=cameras_with_image_and_classification,
