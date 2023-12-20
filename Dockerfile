@@ -6,7 +6,7 @@ FROM python:${PYTHON_VERSION}
 
 # Install git
 RUN apt-get update && \
-    apt-get install -y git && \
+    apt-get install -y git ffmpeg libsm6 libxext6 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
