@@ -27,8 +27,6 @@ from pipelines.deteccao_alagamento_cameras.flooding_detection.utils import (
     redis_get_prediction_buffer,
 )
 
-# get_vault_secret
-
 
 @task
 def task_get_redis_client(
@@ -50,10 +48,14 @@ def task_get_redis_client(
     Returns:
         The Redis client.
     """
-    redis_host = get_secret(infisical_host_env, path=infisical_secrets_path)
-    redis_port = int(get_secret(infisical_port_env, path=infisical_secrets_path))
-    redis_db = int(get_secret(infisical_db_env, path=infisical_secrets_path))
-    redis_password = get_secret(infisical_password_env, path=infisical_secrets_path)
+    redis_host = get_secret(infisical_host_env, path=infisical_secrets_path)[infisical_host_env]
+    redis_port = int(
+        get_secret(infisical_port_env, path=infisical_secrets_path)[infisical_port_env]
+    )
+    redis_db = int(get_secret(infisical_db_env, path=infisical_secrets_path)[infisical_db_env])
+    redis_password = get_secret(infisical_password_env, path=infisical_secrets_path)[
+        infisical_password_env
+    ]
     return get_redis_client(
         host=redis_host,
         port=redis_port,
