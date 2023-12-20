@@ -152,7 +152,7 @@ def get_prediction(
     if not camera_with_image["attempt_classification"]:
         camera_with_image["ai_classification"] = [
             {
-                "object": "alagamento",
+                "object": camera_with_image["identifier"],
                 "label": False,
                 "confidence": 0.7,
             }
@@ -161,7 +161,7 @@ def get_prediction(
     if not camera_with_image["image_base64"]:
         camera_with_image["ai_classification"] = [
             {
-                "object": "alagamento",
+                "object": camera_with_image["identifier"],
                 "label": None,
                 "confidence": 0.7,
             }
@@ -192,7 +192,7 @@ def get_prediction(
 
     camera_with_image["ai_classification"] = [
         {
-            "object": "alagamento",
+            "object": camera_with_image["identifier"],
             "label": flooding_detected,
             "confidence": 0.7,
         }
@@ -439,7 +439,7 @@ def update_flooding_api_data(
         # Add classifications
         ai_classification.append(
             {
-                "object": "alagamento",
+                "object": camera_with_image_and_classification["identifier"],
                 "label": most_common_prediction,
                 "confidence": 0.7,
             }
