@@ -1,0 +1,26 @@
+version: 2
+models :
+  - name: elementos
+    description: "**Descrição**: Tabelas com os 4 elementos da natureza, seus números e datas aleatórias.\ 
+    Utilizado como exemplo para a Formação Infra 2022 do Escritório de Dados do Rio de Janeiro\n\ 
+    **Frequência de atualização**: Não possui"
+    columns:
+      - name: data
+        description: Data em que os dados da linha foram inseridos.
+      - name: numero
+        description: Código do elemento.
+      - name: elemento
+        description: Nome do elemento, em inglês.
+  - name: paises_americanos
+    description: "**Descrição**: Tabelas com todos os países da América e informações sobre eles. \
+    Utilizado como exemplo para a Formação Infra 2022 do Escritório de Dados do Rio de Janeiro\n\
+    **Frequência de atualização**: Não possui"
+    columns:
+      - name: id_pais
+        description: Código do país.
+      - name: id_continente
+        description: Código do continente a qual o país pertence.
+      - name: pais
+        description: Nome do país.
+      - name: capital
+        description: Capital do país.

@@ -1,0 +1,21 @@
+SELECT 
+    SAFE_CAST(REGEXP_REPLACE( LTRIM(cl ,'0'), r'\.0$', '') AS STRING) id_logradouro,
+    SAFE_CAST(TRIM(nome) AS STRING) nome,
+    SAFE_CAST(TRIM(nome_parcial) AS STRING) nome_parcial,
+    SAFE_CAST(TRIM(completo) AS STRING) nome_completo,
+    SAFE_CAST(REGEXP_REPLACE(LTRIM(cod_trecho ,'0'), r'\.0$', '') AS STRING) id_trecho,
+    SAFE_CAST(REGEXP_REPLACE(LTRIM(cod_sit_trecho ,'0'), r'\.0$', '') AS STRING) id_situacao_trecho,
+    SAFE_CAST(sit_trecho AS STRING) situacao_trecho,
+    SAFE_CAST(REGEXP_REPLACE(LTRIM(cod_tipo_logra ,'0'), r'\.0$', '') AS STRING) id_tipo,
+    SAFE_CAST(TRIM(tipo_logra_ext) AS STRING) tipo_logradouro,
+    SAFE_CAST(TRIM(tipo_logra_abr) AS STRING) tipo_logradouro_abreviado,
+    SAFE_CAST(REGEXP_REPLACE(LTRIM(cod_bairro ,'0'), r'\.0$', '') AS STRING) id_bairro,
+    SAFE_CAST(np_ini_par AS INT64) inicio_numero_porta_par,
+    SAFE_CAST(np_fin_par AS INT64) final_numero_porta_par,
+    SAFE_CAST(np_ini_imp AS INT64) inicio_numero_porta_impar,
+    SAFE_CAST(np_fin_imp AS INT64) final_numero_porta_impar,
+    SAFE_CAST(hierarquia AS STRING) hierarquia,
+    SAFE_CAST(REGEXP_REPLACE(LTRIM(chavegeo_tr ,'0'), r'\.0$', '') AS STRING) id_chavegeo,
+    SAFE_CAST(geometry_wkt AS STRING) geometry_wkt,
+    SAFE.ST_GEOGFROMTEXT(geometry) geometry
+FROM `rj-escritorio-dev.dados_mestres_staging.logradouro` 
