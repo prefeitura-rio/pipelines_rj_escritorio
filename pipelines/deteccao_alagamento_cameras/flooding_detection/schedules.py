@@ -3,11 +3,11 @@
 Schedules for the data catalog pipeline.
 """
 
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 
+import pytz
 from prefect.schedules import Schedule
 from prefect.schedules.clocks import IntervalClock
-import pytz
 
 from pipelines.constants import constants
 
@@ -21,6 +21,7 @@ update_flooding_data_schedule = Schedule(
             ],
             parameter_defaults={
                 "cameras_geodf_url": "https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",  # noqa
+                "object_parameters_url": "https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",  # noqa
                 "mocked_cameras_number": 0,
                 "api_key_secret_path": "/flooding-detection",
                 "google_api_model": "gemini-pro-vision",

@@ -13,14 +13,14 @@ from pipelines.constants import constants
 from pipelines.deteccao_alagamento_cameras.flooding_detection.schedules import (
     update_flooding_data_schedule,
 )
-from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_api_key
-from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_last_update
-from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_prediction
-from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_snapshot
-from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import pick_cameras
-from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import update_flooding_api_data
-
-# Flow
+from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import (
+    get_api_key,
+    get_last_update,
+    get_prediction,
+    get_snapshot,
+    pick_cameras,
+    update_flooding_api_data,
+)
 
 with Flow(
     name="EMD: flooding_detection - Atualizar detecção de alagamento (IA) na API",
@@ -30,7 +30,7 @@ with Flow(
     cameras_geodf_url = Parameter(
         "cameras_geodf_url",
         required=True,
-        default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=914166579",
+        default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=914166579",  # noqa
     )
     mocked_cameras_number = Parameter(
         "mocked_cameras_number",
@@ -41,7 +41,7 @@ with Flow(
     object_parameters_url = Parameter(
         "object_parameters_url",
         required=True,
-        default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",
+        default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",  # noqa
     )
     rain_api_data_url = Parameter(
         "rain_api_url",
