@@ -10,10 +10,9 @@ from prefect.utilities.edges import unmapped
 from prefeitura_rio.pipelines_utils.custom import Flow
 
 from pipelines.constants import constants
-from pipelines.deteccao_alagamento_cameras.flooding_detection.schedules import (
-    update_flooding_data_schedule,
-)
+from pipelines.deteccao_alagamento_cameras.flooding_detection.schedules import update_flooding_data_schedule
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_api_key
+from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_object_parameters
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_last_update
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_prediction
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import get_snapshot
@@ -24,25 +23,25 @@ from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import updat
 
 with Flow(
     name="EMD: flooding_detection - Atualizar detecção de alagamento (IA) na API",
-    # code_owners=[
-    #     "gabriel",
-    #     "diego",
-    # ],
     skip_if_running=True,
 ) as rj_escritorio__flooding_detection__flow:
     # Parameters
     cameras_geodf_url = Parameter(
         "cameras_geodf_url",
         required=True,
-        default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",
+        default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=914166579",
     )
     mocked_cameras_number = Parameter(
         "mocked_cameras_number",
         default=0,
     )
-    google_api_max_output_tokens = Parameter("google_api_max_output_tokens", default=300)
     google_api_model = Parameter("google_api_model", default="gemini-pro-vision")
     api_key_secret_path = Parameter("api_key_secret_path", required=True)
+    object_parameters_url = Parameter(
+        "object_parameters_url",
+        required=True,
+        default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721"
+    )
     rain_api_data_url = Parameter(
         "rain_api_url",
         default="https://api.dados.rio/v2/clima_pluviometro/precipitacao_15min/",
@@ -75,11 +74,15 @@ with Flow(
     cameras_with_image = get_snapshot.map(
         camera=cameras,
     )
+    object_parameters = get_object_parameters(object_parameters_url)
     cameras_with_image_and_classification = get_prediction.map(
         camera_with_image=cameras_with_image,
         google_api_key=unmapped(api_key),
         google_api_model=unmapped(google_api_model),
-        google_api_max_output_tokens=unmapped(google_api_max_output_tokens),
+        google_api_max_output_tokens=unmapped(object_parameters["alagamento"]["max_output_tokens"]),
+        google_api_temperature=unmapped(object_parameters["alagamento"]["temperature"]),
+        google_api_top_p=unmapped(object_parameters["alagamento"]["top_p"]),
+        google_api_top_k=unmapped(object_parameters["alagamento"]["top_k"]),
     )
     update_flooding_api_data(
         cameras_with_image_and_classification=cameras_with_image_and_classification,

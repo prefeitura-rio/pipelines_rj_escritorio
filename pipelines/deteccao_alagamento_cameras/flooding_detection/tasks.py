@@ -66,13 +66,19 @@ def get_api_key(secret_path: str, secret_name: str = "GEMINI-PRO-VISION-API-KEY"
     return secret[secret_name]
 
 
-@task
+@task(
+    max_retries=3,
+    retry_delay=timedelta(seconds=1),
+)
 def get_prediction(
     camera_with_image: Dict[str, Union[str, float]],
-    flooding_prompt: str,
+    object_prompt: str,
     google_api_key: str,
     google_api_model: str,
-    google_api_max_output_tokens: int = 300,
+    google_api_max_output_tokens: int,
+    google_api_temperature: float,
+    google_api_top_p: int,
+    google_api_top_k: int
 ) -> Dict[str, Union[str, float, bool]]:
     """
     Gets the flooding detection prediction from Google Gemini API.
@@ -88,10 +94,12 @@ def get_prediction(
                 "attempt_classification": True,
             }
         flooding_prompt: The flooding prompt.
-        google_api_key: The OpenAI API key.
-        google_api_model: The OpenAI API model.
-        google_api_max_tokens: The OpenAI API max tokens.
-        google_api_url: The OpenAI API URL.
+        google_api_key: The Google API key.
+        google_api_model: The Google Gemini API model.
+        google_api_max_tokens: The Google Gemini API max output tokens.
+        google_api_temperature: The Google Gemini API temperature.
+        google_api_top_p: The Google Gemini API top p.
+        google_api_top_k: The Google Gemini API top k.
 
     Returns: The camera with image and classification in the following format:
         {
@@ -133,29 +141,25 @@ def get_prediction(
 
     flooding_detected = None
 
-    try:
-        genai.configure(api_key=google_api_key)
-        model = genai.GenerativeModel(google_api_model)
-        responses = model.generate_content(
-            contents=[flooding_prompt, camera_with_image["image_base64"]],
-            generation_config={
-                "max_output_tokens": google_api_max_output_tokens,
-                "temperature": 0.4,
-                "top_p": 1,
-                "top_k": 32
-            },
-            stream=True,
-        )
+    genai.configure(api_key=google_api_key)
+    model = genai.GenerativeModel(google_api_model)
+    responses = model.generate_content(
+        contents=[object_prompt, camera_with_image["image_base64"]],
+        generation_config={
+            "max_output_tokens": google_api_max_output_tokens,
+            "temperature": google_api_temperature,
+            "top_p": google_api_top_p,
+            "top_k": google_api_top_k
+        },
+        stream=True,
+    )
 
-        responses.resolve()
+    responses.resolve()
 
-        json_string = responses.text.replace("```json\n", "").replace("\n```", "")
-        flooding_detected = json.loads(json_string)["flooding_detected"]
+    json_string = responses.text.replace("```json\n", "").replace("\n```", "")
+    flooding_detected = json.loads(json_string)["flooding_detected"]
 
-        log(f"Successfully got prediction: {flooding_detected}")
-
-    except Exception as e:
-        log(f"Failed to get prediction: {e}")
+    log(f"Successfully got prediction: {flooding_detected}")
 
     camera_with_image["ai_classification"] = [
         {
@@ -403,3 +407,22 @@ def update_flooding_api_data(
     redis_client.set(data_key, api_data)
     redis_client.set(last_update_key, last_update.to_datetime_string())
     log("Successfully updated flooding detection data.")
+
+
+@task
+def get_object_parameters(object_spreadsheet_url: str) -> Dict[str, Dict[str, str]]:
+    """
+    Gets object parameters
+
+    Args:
+        object_spreadsheet_url: The object spreadsheet url
+
+    Returns: The object parameters
+    """
+    parameters_data_path = Path("/tmp/object_parameters.csv")
+    if not download_file(url=object_spreadsheet_url, output_path=parameters_data_path):
+        raise RuntimeError("Failed to download the object parameters data.")
+
+    parameters = pd.read_csv(parameters_data_path, index_col=0).to_dict(orient='index')
+
+    return parameters

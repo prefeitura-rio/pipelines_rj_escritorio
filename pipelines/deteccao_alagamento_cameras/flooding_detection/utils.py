@@ -19,7 +19,7 @@ from prefeitura_rio.pipelines_utils.logging import log
 from prefeitura_rio.pipelines_utils.pandas import remove_columns_accents
 
 
-def download_file(url: str, output_path: Union[str, Path]) -> None:
+def download_file(url: str, output_path: Union[str, Path]) -> bool:
     """
     Downloads a file from a URL.
 
