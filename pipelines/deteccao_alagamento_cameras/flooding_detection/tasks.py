@@ -3,17 +3,13 @@ import base64
 import io
 import json
 import random
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict
-from typing import List
-from typing import Union
+from typing import Dict, List, Union
 
 import cv2
 import geopandas as gpd
 import google.generativeai as genai
-import numpy as np
 import pandas as pd
 import pendulum
 import requests
@@ -22,17 +18,48 @@ from prefect import task
 from prefeitura_rio.pipelines_utils.infisical import get_secret
 from prefeitura_rio.pipelines_utils.logging import log
 from prefeitura_rio.pipelines_utils.redis_pal import get_redis_client
+from redis_pal import RedisPal
 from shapely.geometry import Point
 
-from pipelines.deteccao_alagamento_cameras.flooding_detection.utils import download_file
 from pipelines.deteccao_alagamento_cameras.flooding_detection.utils import (
+    download_file,
     redis_add_to_prediction_buffer,
-)
-from pipelines.deteccao_alagamento_cameras.flooding_detection.utils import (
     redis_get_prediction_buffer,
 )
 
 # get_vault_secret
+
+
+@task
+def task_get_redis_client(
+    infisical_host_env: str = "REDIS_HOST",
+    infisical_port_env: str = "REDIS_PORT",
+    infisical_db_env: str = "REDIS_DB",
+    infisical_password_env: str = "REDIS_PASSWORD",
+    infisical_secrets_path: str = "/",
+):
+    """
+    Gets a Redis client.
+
+    Args:
+        infisical_host_env: The environment variable for the Redis host.
+        infisical_port_env: The environment variable for the Redis port.
+        infisical_db_env: The environment variable for the Redis database.
+        infisical_password_env: The environment variable for the Redis password.
+
+    Returns:
+        The Redis client.
+    """
+    redis_host = get_secret(infisical_host_env, path=infisical_secrets_path)
+    redis_port = int(get_secret(infisical_port_env, path=infisical_secrets_path))
+    redis_db = int(get_secret(infisical_db_env, path=infisical_secrets_path))
+    redis_password = get_secret(infisical_password_env, path=infisical_secrets_path)
+    return get_redis_client(
+        host=redis_host,
+        port=redis_port,
+        db=redis_db,
+        password=redis_password,
+    )
 
 
 @task
@@ -230,6 +257,7 @@ def pick_cameras(
     object_parameters_url: str,
     last_update: datetime,
     predictions_buffer_key: str,
+    redis_client: RedisPal,
     number_mock_rain_cameras: int = 0,
 ) -> List[Dict[str, Union[str, float]]]:
     """
@@ -291,7 +319,9 @@ def pick_cameras(
     # Modify status based on buffers
     for _, row in df_cameras_h3.iterrows():
         predictions_buffer_camera_key = f"{predictions_buffer_key}_{row['id_camera']}"
-        predictions_buffer = redis_get_prediction_buffer(predictions_buffer_camera_key)
+        predictions_buffer = redis_get_prediction_buffer(
+            predictions_buffer_camera_key, redis_client=redis_client
+        )
         # Get most common prediction
         most_common_prediction = max(set(predictions_buffer), key=predictions_buffer.count)
         # Get last prediction
@@ -347,6 +377,7 @@ def update_flooding_api_data(
     data_key: str,
     last_update_key: str,
     predictions_buffer_key: str,
+    redis_client: RedisPal,
 ) -> None:
     """
     Updates Redis keys with flooding detection data and last update datetime (now).
@@ -399,7 +430,7 @@ def update_flooding_api_data(
             f"{predictions_buffer_key}_{camera_with_image_and_classification['id_camera']}"  # noqa
         )
         predictions_buffer = redis_add_to_prediction_buffer(
-            predictions_buffer_camera_key, current_prediction
+            predictions_buffer_camera_key, current_prediction, redis_client=redis_client
         )
         # Get most common prediction
         most_common_prediction = max(set(predictions_buffer), key=predictions_buffer.count)
@@ -424,7 +455,6 @@ def update_flooding_api_data(
         )
 
     # Update API data
-    redis_client = get_redis_client(db=1)
     redis_client.set(data_key, api_data)
     redis_client.set(last_update_key, last_update.to_datetime_string())
     log("Successfully updated flooding detection data.")

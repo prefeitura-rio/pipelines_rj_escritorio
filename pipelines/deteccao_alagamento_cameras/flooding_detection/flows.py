@@ -20,6 +20,7 @@ from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import (
     get_prediction,
     get_snapshot,
     pick_cameras,
+    task_get_redis_client,
     update_flooding_api_data,
 )
 
@@ -66,6 +67,13 @@ with Flow(
     )
 
     # Flow
+    redis_client = task_get_redis_client(
+        infisical_host_env="REDIS_HOST",
+        infisical_port_env="REDIS_PORT",
+        infisical_db_env="REDIS_DB",
+        infisical_password_env="REDIS_PASSWORD",
+        infisical_secrets_path=api_key_secret_path,
+    )
     last_update = get_last_update(rain_api_update_url=rain_api_update_url)
     cameras = pick_cameras(
         rain_api_data_url=rain_api_data_url,
@@ -73,6 +81,7 @@ with Flow(
         object_parameters_url=object_parameters_url,
         last_update=last_update,
         predictions_buffer_key=redis_key_predictions_buffer,
+        redis_client=redis_client,
         number_mock_rain_cameras=mocked_cameras_number,
     )
     api_key = get_api_key(secret_path=api_key_secret_path, secret_name="GEMINI-PRO-VISION-API-KEY")
@@ -90,6 +99,7 @@ with Flow(
         data_key=redis_key_flooding_detection_data,
         last_update_key=redis_key_flooding_detection_last_update,
         predictions_buffer_key=redis_key_predictions_buffer,
+        redis_client=redis_client,
     )
 
 
