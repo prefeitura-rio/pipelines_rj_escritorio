@@ -527,7 +527,7 @@ def update_flooding_api_data(
     log("Successfully updated flooding detection data.")
 
     has_api_data = not len(api_data) == 0
-    log("has_api_data: {has_api_data}")
+    log(f"has_api_data: {has_api_data}")
     return api_data, has_api_data
 
 

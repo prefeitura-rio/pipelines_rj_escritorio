@@ -38,3 +38,6 @@ models:
     cetrio:
       +materialized: table
       +schema: cetrio
+    ai_vision_detection:
+      +materialized: table
+      +schema: ai_vision_detection

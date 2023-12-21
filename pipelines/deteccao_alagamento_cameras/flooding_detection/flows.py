@@ -2,14 +2,22 @@
 """
 Flow definition for flooding detection using AI.
 """
+from datetime import timedelta
+
 from prefect import Parameter, case
 from prefect.executors import LocalDaskExecutor
 from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
+from prefect.tasks.prefect import create_flow_run, wait_for_flow_run
 from prefect.utilities.edges import unmapped
+from prefeitura_rio.core import settings
 from prefeitura_rio.pipelines_utils.custom import Flow
+from prefeitura_rio.pipelines_utils.prefect import task_get_current_flow_run_labels
 from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
-from prefeitura_rio.pipelines_utils.tasks import create_table_and_upload_to_gcs
+from prefeitura_rio.pipelines_utils.tasks import (
+    create_table_and_upload_to_gcs,
+    get_current_flow_project_name,
+)
 
 from pipelines.constants import constants
 from pipelines.deteccao_alagamento_cameras.flooding_detection.schedules import (
@@ -71,6 +79,9 @@ with Flow(
     )
     dataset_id = Parameter("dataset_id", default="ai_vision_detection")
     table_id = Parameter("table_id", default="cameras_predicoes")
+    materialize_after_dump = Parameter("materialize_after_dump", default=False)
+
+    current_flow_labels = task_get_current_flow_run_labels()
 
     # Flow
     redis_client = task_get_redis_client(
@@ -122,7 +133,32 @@ with Flow(
             dump_mode="append",
         )
 
-        create_staging_table
+        with case(materialize_after_dump, True):
+            materialization_flow = create_flow_run(
+                flow_name=settings.FLOW_NAME_EXECUTE_DBT_MODEL,
+                project_name=get_current_flow_project_name(),
+                parameters={
+                    "dataset_id": dataset_id,
+                    "table_id": table_id,
+                    "mode": "append",
+                    "materialize_to_datario": False,
+                    "dbt_model_secret_parameters": {},
+                    "dbt_alias": False,
+                },
+                labels=current_flow_labels,
+                run_name=f"Materialize {dataset_id}.{table_id}",
+            )
+            materialization_flow.set_upstream(create_staging_table)
+            wait_for_materialization = wait_for_flow_run(
+                materialization_flow,
+                stream_states=True,
+                stream_logs=True,
+                raise_final_state=True,
+            )
+            wait_for_materialization.max_retries = settings.TASK_MAX_RETRIES_DEFAULT
+            wait_for_materialization.retry_delay = timedelta(
+                seconds=settings.TASK_RETRY_DELAY_DEFAULT
+            )
 
 rj_escritorio__flooding_detection__flow.storage = GCS(constants.GCS_FLOWS_BUCKET.value)
 rj_escritorio__flooding_detection__flow.executor = LocalDaskExecutor(num_workers=10)
