@@ -140,7 +140,7 @@ with Flow(
                 parameters={
                     "dataset_id": dataset_id,
                     "table_id": table_id,
-                    "mode": "append",
+                    "mode": "dev",
                     "materialize_to_datario": False,
                     "dbt_model_secret_parameters": {},
                     "dbt_alias": False,
