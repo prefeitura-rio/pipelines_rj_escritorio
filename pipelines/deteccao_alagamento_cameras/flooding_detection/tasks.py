@@ -573,11 +573,16 @@ def upload_to_native_table(
     Upload data to native table.
     """
     table = bd.Table(dataset_id=dataset_id, table_id=table_id)
+
+    # create some columns and cast type
+    dataframe["datetime"] = pd.to_datetime(dataframe["datetime"])
     dataframe["data_particao"] = dataframe["datetime"].apply(lambda x: str(x)[:10])
+    dataframe["data_particao"] = pd.to_datetime(dataframe["data_particao"])
+
     dataframe["geometry"] = (
         "POINT ("
         + dataframe["longitude"].astype(str)
-        + ", "
+        + " "
         + dataframe["latitude"].astype(str)
         + ")"
     )
@@ -590,10 +595,10 @@ def upload_to_native_table(
         bigquery.SchemaField("url_camera", "STRING"),
         bigquery.SchemaField("model", "STRING"),
         bigquery.SchemaField("object", "STRING"),
-        bigquery.SchemaField("label", "STRING"),
+        bigquery.SchemaField("label", "BOOL"),
         bigquery.SchemaField("confidence", "FLOAT64"),
         bigquery.SchemaField("prompt", "STRING"),
-        bigquery.SchemaField("max_output_token", "STRING"),
+        bigquery.SchemaField("max_output_token", "INT64"),
         bigquery.SchemaField("temperature", "FLOAT64"),
         bigquery.SchemaField("top_k", "INT64"),
         bigquery.SchemaField("top_p", "INT64"),
@@ -613,7 +618,6 @@ def upload_to_native_table(
             type_=bigquery.TimePartitioningType.DAY,
             field="data_particao",  # name of column to use for partitioning
         ),
-        source_format=bigquery.SourceFormat.CSV,
     )
 
     col_order = [col.name for col in schema]
