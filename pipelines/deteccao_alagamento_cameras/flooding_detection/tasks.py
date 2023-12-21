@@ -154,6 +154,8 @@ def get_prediction(
     # TODO:
     # - Add confidence value
     # Setup the request
+    log(f"Getting prediction for id_camera: {camera_with_image['id_camera']}")  # noqa
+    log(f"Getting prediction for object: {camera_with_image['identifier']}")  # noqa
     log(
         f"Getting prediction for camera_with_image: {camera_with_image['image_base64'][:20] + '...' if camera_with_image['image_base64'] else None}"  # noqa
     )
@@ -244,7 +246,15 @@ def get_snapshot(
                 "url_camera": "rtsp://...",
                 "latitude": -22.912,
                 "longitude": -43.230,
+                "image_base64": "base64...",
                 "attempt_classification": True,
+                "identifier": "alagamento",
+                "prompt": "You are ....",
+                "max_output_token": 300,
+                "temperature": 0.4,
+                "top_k": 1,
+                "top_p": 32,
+
             }
 
     Returns:
@@ -259,7 +269,10 @@ def get_snapshot(
             }
     """
     try:
+        camera_id = camera["id_camera"]
+        object = camera["identifier"]
         rtsp_url = camera["url_camera"]
+
         cap = cv2.VideoCapture(rtsp_url)
         ret, frame = cap.read()
         if not ret:
@@ -270,10 +283,14 @@ def get_snapshot(
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG")
         img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-        log(f"Successfully got snapshot from URL {rtsp_url}.")
+        log(
+            f"Successfully got snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"  # noqa
+        )
         camera["image_base64"] = img_b64
     except Exception:
-        log(f"Failed to get snapshot from URL {rtsp_url}.")
+        log(
+            f"Failed to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"
+        )
         camera["image_base64"] = None
     return camera
 
@@ -403,7 +420,9 @@ def pick_cameras(
                 "top_p": row["top_p"],
             }
         )
-    log(f"Picked cameras: {output}")
+
+    output_log = json.dumps(output, indent=4)
+    log(f"Picked cameras:\n {output_log}")
     return output
 
 
