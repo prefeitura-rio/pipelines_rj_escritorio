@@ -522,14 +522,12 @@ def update_flooding_api_data(
         )
 
     # Update API data
-    redis_client.set(
-        data_key,
-    )
+    redis_client.set(data_key, api_data)
     redis_client.set(last_update_key, last_update.to_datetime_string())
     log("Successfully updated flooding detection data.")
 
     has_api_data = not len(api_data) == 0
-
+    log("has_api_data: {has_api_data}")
     return api_data, has_api_data
 
 
