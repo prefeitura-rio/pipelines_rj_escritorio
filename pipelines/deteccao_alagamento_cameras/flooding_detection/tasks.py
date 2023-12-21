@@ -351,7 +351,7 @@ def pick_cameras(
     for _, row in df_cameras_h3.iterrows():
         objetos = row["identificador"].split(",")
         for objeto in objetos:
-            row["identificador"] = objeto
+            row["identificador"] = objeto.strip()
             df_cameras_h3_expanded = pd.concat([df_cameras_h3_expanded, pd.DataFrame([row])])
 
     # download the object parameters data
