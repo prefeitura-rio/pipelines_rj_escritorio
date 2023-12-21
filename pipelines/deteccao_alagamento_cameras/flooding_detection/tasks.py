@@ -142,6 +142,11 @@ def get_prediction(
                     "object": "alagamento",
                     "label": True,
                     "confidence": 0.7,
+                    "prompt": "You are ....",
+                    "max_output_token": 300,
+                    "temperature": 0.4,
+                    "top_k": 1,
+                    "top_p": 32,
                 }
             ],
         }
@@ -159,6 +164,11 @@ def get_prediction(
                 "object": camera_with_image["identifier"],
                 "label": False,
                 "confidence": 0.7,
+                "prompt": camera_with_image["prompt"],
+                "max_output_token": camera_with_image["max_output_token"],
+                "temperature": camera_with_image["temperature"],
+                "top_k": camera_with_image["top_k"],
+                "top_p": camera_with_image["top_k"],
             }
         ]
         return camera_with_image
@@ -169,6 +179,11 @@ def get_prediction(
                 "object": camera_with_image["identifier"],
                 "label": None,
                 "confidence": 0.7,
+                "prompt": camera_with_image["prompt"],
+                "max_output_token": camera_with_image["max_output_token"],
+                "temperature": camera_with_image["temperature"],
+                "top_k": camera_with_image["top_k"],
+                "top_p": camera_with_image["top_k"],
             }
         ]
         return camera_with_image
@@ -201,6 +216,11 @@ def get_prediction(
             "object": camera_with_image["identifier"],
             "label": flooding_detected,
             "confidence": 0.7,
+            "prompt": camera_with_image["prompt"],
+            "max_output_token": camera_with_image["max_output_token"],
+            "temperature": camera_with_image["temperature"],
+            "top_k": camera_with_image["top_k"],
+            "top_p": camera_with_image["top_k"],
         }
     ]
 
@@ -413,6 +433,11 @@ def update_flooding_api_data(
                                 "object": "alagamento",
                                 "label": True,
                                 "confidence": 0.7,
+                                "prompt": "You are ....",
+                                "max_output_token": 300,
+                                "temperature": 0.4,
+                                "top_k": 1,
+                                "top_p": 32,
                             }
                         ],
                     },
@@ -456,6 +481,11 @@ def update_flooding_api_data(
                 "object": camera_with_image_and_classification["identifier"],
                 "label": most_common_prediction,
                 "confidence": 0.7,
+                "prompt": camera_with_image_and_classification["prompt"],
+                "max_output_token": camera_with_image_and_classification["max_output_token"],
+                "temperature": camera_with_image_and_classification["temperature"],
+                "top_k": camera_with_image_and_classification["top_k"],
+                "top_p": camera_with_image_and_classification["top_k"],
             }
         )
         api_data.append(
