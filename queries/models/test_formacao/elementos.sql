@@ -1,4 +1,4 @@
-SELECT 
+SELECT
   SAFE_CAST(data as DATE) as data,
   SAFE_CAST(number as INT64) as numero,
   element as elemento,

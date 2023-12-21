@@ -1,6 +1,6 @@
 
-SELECT 
-    SAFE_CAST(cod AS STRING) id_aeis, 
+SELECT
+    SAFE_CAST(cod AS STRING) id_aeis,
     SAFE_CAST(nome AS STRING) nome_aeis,
     SAFE_CAST(tipologia AS STRING) tipologia,
     SAFE_CAST(item AS STRING) item,
@@ -11,7 +11,7 @@ SELECT
     SAFE_CAST(ra AS STRING) nome_regiao_administrativa,
     SAFE_CAST(pal AS STRING) projeto_loteamento, # boolean
     SAFE_CAST(f6 AS STRING) referencia, # verificar metadado
-    SAFE_CAST(SAFE.PARSE_DATE('%d/%m/%Y', data) AS DATE) data_cadastro,  
+    SAFE_CAST(SAFE.PARSE_DATE('%d/%m/%Y', data) AS DATE) data_cadastro,
     SAFE_CAST(legislacao AS STRING) legislacao,
     SAFE_CAST(pavimentos AS STRING) limite_pavimentos_permitido,
     SAFE_CAST(tx_ocupacao AS STRING) taxa_ocupacao,
@@ -20,6 +20,6 @@ SELECT
     SAFE_CAST(afastamentos AS STRING) afastamento,
     SAFE_CAST(shape__area AS STRING) area,
     SAFE_CAST(shape__length AS STRING) comprimento,
-    SAFE_CAST(geometry_wkt AS STRING) geometria_wkt, 
-    SAFE.ST_GEOGFROMTEXT(geometry) AS geometry, 
+    SAFE_CAST(geometry_wkt AS STRING) geometria_wkt,
+    SAFE.ST_GEOGFROMTEXT(geometry) AS geometry,
 FROM `rj-escritorio-dev.dados_mestres_staging.aeis`

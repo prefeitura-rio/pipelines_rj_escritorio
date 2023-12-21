@@ -1,4 +1,4 @@
-SELECT 
+SELECT
     SAFE_CAST(REGEXP_REPLACE( LTRIM(cl ,'0'), r'\.0$', '') AS STRING) id_logradouro,
     SAFE_CAST(TRIM(nome) AS STRING) nome,
     SAFE_CAST(TRIM(nome_parcial) AS STRING) nome_parcial,
@@ -18,4 +18,4 @@ SELECT
     SAFE_CAST(REGEXP_REPLACE(LTRIM(chavegeo_tr ,'0'), r'\.0$', '') AS STRING) id_chavegeo,
     SAFE_CAST(geometry_wkt AS STRING) geometry_wkt,
     SAFE.ST_GEOGFROMTEXT(geometry) geometry
-FROM `rj-escritorio-dev.dados_mestres_staging.logradouro` 
+FROM `rj-escritorio-dev.dados_mestres_staging.logradouro`

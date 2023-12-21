@@ -13,7 +13,7 @@ WITH waze_inicial AS (
     WHERE long is not null and DATE_DIFF(CURRENT_DATE(), ts, DAY) <= 30), -- o que não foi reportado nos últimos 30 dias deve ter sido fechado
 
     waze_cluster AS (
-    SELECT 
+    SELECT
     *,
     -- epsilon: The epsilon that specifies the radius, measured in meters, around a core value. 10 20 50
     ST_CLUSTERDBSCAN(wkt_geometry_waze, 30, 1) OVER (PARTITION BY ts_trunc) AS cluster_num, --aqui
@@ -32,9 +32,9 @@ WITH waze_inicial AS (
     FROM waze_cluster
     GROUP BY identificador_tabela, ts_trunc, cluster_num
     ORDER BY ts_trunc, cluster_num),
- 
+
     logradouros AS (
-    SELECT 
+    SELECT
     *,
     geometry wkt_geometry_logradouros,
     --ST_SNAPTOGRID(geometry, 0.00125) grid_logradouros,
@@ -54,7 +54,7 @@ WITH waze_inicial AS (
     ON CAST(d.id_bairro as FLOAT64) = CAST(lim.id_bairro as FLOAT64)
     WHERE data_inicio >= '2021-01-01'
       AND id_subtipo = '78'), -- COUNT(*) = 57988
- 
+
     join_waze AS (
     SELECT
     w.*,
@@ -78,13 +78,13 @@ WITH waze_inicial AS (
     ),
 
     waze_one_street AS (
-    SELECT 
-    *, 
+    SELECT
+    *,
     ROW_NUMBER() OVER(PARTITION BY id_cluster_waze ORDER BY id_logradouro DESC) AS ordem_logradouros
-    FROM (SELECT jw.* FROM join_waze as jw 
+    FROM (SELECT jw.* FROM join_waze as jw
           INNER JOIN waze_one_trecho as wot ON jw.id_cluster_waze = wot.id_cluster_waze AND jw.id_logradouro = wot.id_logradouro AND jw.ordem_trecho = wot.primeiro_trecho)
     WHERE bairro_logradouros is not NULL),
-    
+
     join_1746 AS (
     SELECT
     d.*,
@@ -96,7 +96,7 @@ WITH waze_inicial AS (
     --ON ST_INTERSECTS(d.wkt_geometry_1746 , ST_BUFFER(l.wkt_geometry_logradouros, 20))
     ON LPAD(d.id_logradouro, 6, '0') = l.id_logradouro
     WHERE l.ordem_trecho = 1 or l.ordem_trecho IS NULL), -- pegando apenas um trecho eu elimino linhas duplicadas, mas isso não é um problema pois as informações de localidade
-    -- que eu vou passar pro usuario final são o id_logradouro e a localização oriunda do chamado, nenhuma informação sobre o trecho em si. 
+    -- que eu vou passar pro usuario final são o id_logradouro e a localização oriunda do chamado, nenhuma informação sobre o trecho em si.
     -- Pegando os NULL eu não elimino chamados cujo id_logradouro não foi encontrado na base de logradouros
 
     ---COMECO UNION
@@ -105,7 +105,7 @@ WITH waze_inicial AS (
     id_chamado,
     id_chamado as id_1746,
     NULL as id_waze,
-    data_inicio, 
+    data_inicio,
     data_fim,
     status,
     tipo_1746 as tipo,
@@ -139,19 +139,19 @@ WITH waze_inicial AS (
     'Rio de Janeiro, RJ' cidade, -- colocando na mao mas na verdade deveria verificar se o ponto está ou não na cidade
     CONCAT(nome_logradouro, ' ', IFNULL(CAST(numero_logradouro AS STRING), ''),', ', TRIM(bairro_chamado), ', Rio de Janeiro, RJ') endereco_completo, -- falta o numero de porta, mas nao tenho esse dado,
     hierarquia as hierarquia_viaria,
-    ST_Y(wkt_geometry_1746) as latitude, 
+    ST_Y(wkt_geometry_1746) as latitude,
     ST_X(wkt_geometry_1746) as longitude,
     NULL as contagem_alertas_cluster_waze,
     numero_gerencia_conservacao_responsavel AS id_gerencia_responsavel
     FROM join_1746
 
-    UNION ALL 
+    UNION ALL
 
     SELECT
     id_cluster_waze as id_chamado,
     NULL as id_1746,
     id_cluster_waze as id_waze,
-    ts_trunc as data_inicio, 
+    ts_trunc as data_inicio,
     NULL as data_fim,
     NULL as status,
     NULL as tipo,
@@ -183,7 +183,7 @@ WITH waze_inicial AS (
     'Rio de Janeiro, RJ' cidade, -- colocando na mao mas na verdade deveria verificar se o ponto está ou não na cidade
     CONCAT(nome_completo, ', ', TRIM(IFNULL(bairro_logradouros, '')), ', Rio de Janeiro, RJ') endereco_completo, -- falta o numero de porta, mas nao tenho esse dado,
     hierarquia as hierarquia_viaria,
-    ST_Y(centroide_cluster) as latitude, 
+    ST_Y(centroide_cluster) as latitude,
     ST_X(centroide_cluster) as longitude,
     contagem_buracos as contagem_alertas_cluster_waze,
     numero_gerencia_conservacao_responsavel AS id_gerencia_responsavel
@@ -191,17 +191,17 @@ WITH waze_inicial AS (
     )
     ---FIM UNION
 
-SELECT 
+SELECT
     *,
-   (CASE 
+   (CASE
         WHEN tempo_de_vida <= 4 THEN '3 - 1 a 4 dias'
         WHEN tempo_de_vida <= 8 THEN '2 - 5 a 8 dias'
         WHEN tempo_de_vida <= 12 THEN '1 - 9 a 12 dias'
         ELSE '4 - 13 dias ou mais' END) as aging_list,
     (CASE                                                -- origem_ocorrencia = 'waze' OR
-        WHEN (8 < tempo_de_vida AND tempo_de_vida <= 12) OR hierarquia_viaria = 'Arterial primária' OR hierarquia_viaria = 'Arterial secundária' 
+        WHEN (8 < tempo_de_vida AND tempo_de_vida <= 12) OR hierarquia_viaria = 'Arterial primária' OR hierarquia_viaria = 'Arterial secundária'
             THEN 1
-        WHEN (4 < tempo_de_vida AND tempo_de_vida <= 8) OR hierarquia_viaria = 'Coletora' 
+        WHEN (4 < tempo_de_vida AND tempo_de_vida <= 8) OR hierarquia_viaria = 'Coletora'
             THEN 2
         WHEN (0 <= tempo_de_vida AND tempo_de_vida <= 4)
             THEN 3

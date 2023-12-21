@@ -1,14 +1,14 @@
 -- CREATE OR REPLACE TABLE `rj-escritorio-dev.bases_avulsas.features_modelo_alagamento` AS (
 -- WITH total_alerta_rio as (
---   SELECT 
---     *, 
---     CAST(CONCAT(data_particao,' ',horario) AS DATETIME) ts 
---   FROM `rj-cor.meio_ambiente_clima.taxa_precipitacao_alertario` 
+--   SELECT
+--     *,
+--     CAST(CONCAT(data_particao,' ',horario) AS DATETIME) ts
+--   FROM `rj-cor.meio_ambiente_clima.taxa_precipitacao_alertario`
 --   ORDER BY data_particao, id_estacao, horario DESC
 -- )
 
 -- , acumulados as (
---   SELECT 
+--   SELECT
 --     t1.primary_key,
 --     t1.id_estacao,
 --     t1.acumulado_chuva_15_min,
@@ -22,7 +22,7 @@
 --   FROM total_alerta_rio as t1
 --   LEFT JOIN total as t2
 --     ON t1.id_estacao = t2.id_estacao
---   GROUP BY   
+--   GROUP BY
 --     t1.primary_key,
 --     t1.id_estacao,
 --     t1.acumulado_chuva_15_min,
@@ -36,8 +36,8 @@
 -- )
 
 WITH meteorologia as (
-  SELECT 
-    *, 
+  SELECT
+    *,
     CAST(CONCAT(data_particao,' ',horario) AS DATETIME) ts,
     EXTRACT(YEAR FROM data_particao) ano,
     EXTRACT(ISOWEEK FROM data_particao) semana,
@@ -47,7 +47,7 @@ WITH meteorologia as (
 )
 
 , acumulados as (
-  SELECT 
+  SELECT
     t1.primary_key,
     t1.id_estacao,
     t1.data_particao,
@@ -60,7 +60,7 @@ WITH meteorologia as (
     SUM(t1.acumulado_chuva_1_h)
       OVER (window_24h) AS acumulado_chuva_24_h
   FROM meteorologia as t1
-  WINDOW 
+  WINDOW
     window_4h AS (
         PARTITION BY id_estacao
         ORDER BY ts
@@ -79,14 +79,14 @@ WITH meteorologia as (
   SELECT
     *,
     EXTRACT(YEAR FROM data_particao) ano,
-    EXTRACT(ISOWEEK FROM data_particao) semana, 
+    EXTRACT(ISOWEEK FROM data_particao) semana,
   FROM `rj-cor.administracao_servicos_publicos.eventos`
   WHERE id_pop IN ('5', '6', '31', '32', '33') and data_particao >= '2016-01-01'
   ORDER BY id_evento
 )
 
 , soma_ocorrencias_semana_0 as (
-  SELECT 
+  SELECT
     ano,
     semana,
     COUNT(id_evento) soma_ocorrencias
@@ -96,7 +96,7 @@ WITH meteorologia as (
 )
 
 , soma_ocorrencias_semana as (
-  SELECT 
+  SELECT
     ano,
     semana,
     soma_ocorrencias,
@@ -145,8 +145,8 @@ FROM meteorologia as t1
 LEFT JOIN acumulados as ac
   ON t1.primary_key = ac.primary_key
 LEFT JOIN soma_ocorrencias_semana as sos
-  ON (t1.ano - 1) = sos.ano AND t1.semana = sos.semana 
--- O join acima é pra garantir que estamos pegando a soma de ocorrências da mesma semana do ano anterior 
+  ON (t1.ano - 1) = sos.ano AND t1.semana = sos.semana
+-- O join acima é pra garantir que estamos pegando a soma de ocorrências da mesma semana do ano anterior
 -- e não LAG(52). Imaginei que essa feature seria muito afetada no caso de missing data.
 LEFT JOIN soma_ocorrencias_semana as sos2
   ON t1.ano = sos2.ano AND t1.semana = sos2.semana

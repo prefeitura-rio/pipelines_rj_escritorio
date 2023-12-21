@@ -1,4 +1,4 @@
-SELECT 
+SELECT
     SAFE_CAST(TRIM(legenda) AS STRING) AS legenda_setor,
     SAFE_CAST(TRIM(sigla) AS STRING) AS sigla_setor,
     SAFE_CAST(TRIM(nome) AS STRING) AS nome_setor,
