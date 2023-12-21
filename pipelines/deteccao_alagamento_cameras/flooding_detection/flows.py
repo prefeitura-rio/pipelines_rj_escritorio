@@ -41,7 +41,9 @@ with Flow(
         default=0,
     )
     google_api_model = Parameter("google_api_model", default="gemini-pro-vision")
-    api_key_secret_path = Parameter("api_key_secret_path", required=True)
+    api_key_secret_path = Parameter(
+        "api_key_secret_path", required=True, default="/flooding-detection"
+    )
     object_parameters_url = Parameter(
         "object_parameters_url",
         required=True,

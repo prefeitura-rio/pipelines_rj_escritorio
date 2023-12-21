@@ -121,7 +121,7 @@ def get_prediction(
                 "longitude": -43.230,
                 "image_base64": "base64...",
                 "attempt_classification": True,
-                "identifier": "alagamento",
+                "object": "alagamento",
                 "prompt": "You are ....",
                 "max_output_token": 300,
                 "temperature": 0.4,
@@ -142,6 +142,11 @@ def get_prediction(
                     "object": "alagamento",
                     "label": True,
                     "confidence": 0.7,
+                    "prompt": "You are ....",
+                    "max_output_token": 300,
+                    "temperature": 0.4,
+                    "top_k": 1,
+                    "top_p": 32,
                 }
             ],
         }
@@ -149,6 +154,8 @@ def get_prediction(
     # TODO:
     # - Add confidence value
     # Setup the request
+    log(f"Getting prediction for id_camera: {camera_with_image['id_camera']}")  # noqa
+    log(f"Getting prediction for object: {camera_with_image['object']}")  # noqa
     log(
         f"Getting prediction for camera_with_image: {camera_with_image['image_base64'][:20] + '...' if camera_with_image['image_base64'] else None}"  # noqa
     )
@@ -156,9 +163,14 @@ def get_prediction(
         log("Skipping prediction for `attempt_classification` is False.")
         camera_with_image["ai_classification"] = [
             {
-                "object": camera_with_image["identifier"],
+                "object": camera_with_image["object"],
                 "label": False,
                 "confidence": 0.7,
+                "prompt": camera_with_image["prompt"],
+                "max_output_token": camera_with_image["max_output_token"],
+                "temperature": camera_with_image["temperature"],
+                "top_k": camera_with_image["top_k"],
+                "top_p": camera_with_image["top_k"],
             }
         ]
         return camera_with_image
@@ -166,14 +178,19 @@ def get_prediction(
         log("Skipping prediction for `image_base64` is None.")
         camera_with_image["ai_classification"] = [
             {
-                "object": camera_with_image["identifier"],
+                "object": camera_with_image["object"],
                 "label": None,
                 "confidence": 0.7,
+                "prompt": camera_with_image["prompt"],
+                "max_output_token": camera_with_image["max_output_token"],
+                "temperature": camera_with_image["temperature"],
+                "top_k": camera_with_image["top_k"],
+                "top_p": camera_with_image["top_k"],
             }
         ]
         return camera_with_image
 
-    flooding_detected = None
+    label = None
 
     img = Image.open(io.BytesIO(base64.b64decode(camera_with_image["image_base64"])))
     genai.configure(api_key=google_api_key)
@@ -192,15 +209,20 @@ def get_prediction(
     responses.resolve()
 
     json_string = responses.text.replace("```json\n", "").replace("\n```", "")
-    flooding_detected = json.loads(json_string)["flooding_detected"]
+    label = json.loads(json_string)["label"]
 
-    log(f"Successfully got prediction: {flooding_detected}")
+    log(f"Successfully got prediction: {label}")
 
     camera_with_image["ai_classification"] = [
         {
-            "object": camera_with_image["identifier"],
-            "label": flooding_detected,
+            "object": camera_with_image["object"],
+            "label": label,
             "confidence": 0.7,
+            "prompt": camera_with_image["prompt"],
+            "max_output_token": camera_with_image["max_output_token"],
+            "temperature": camera_with_image["temperature"],
+            "top_k": camera_with_image["top_k"],
+            "top_p": camera_with_image["top_k"],
         }
     ]
 
@@ -224,7 +246,15 @@ def get_snapshot(
                 "url_camera": "rtsp://...",
                 "latitude": -22.912,
                 "longitude": -43.230,
+                "image_base64": "base64...",
                 "attempt_classification": True,
+                "object": "alagamento",
+                "prompt": "You are ....",
+                "max_output_token": 300,
+                "temperature": 0.4,
+                "top_k": 1,
+                "top_p": 32,
+
             }
 
     Returns:
@@ -239,7 +269,10 @@ def get_snapshot(
             }
     """
     try:
+        camera_id = camera["id_camera"]
+        object = camera["object"]
         rtsp_url = camera["url_camera"]
+
         cap = cv2.VideoCapture(rtsp_url)
         ret, frame = cap.read()
         if not ret:
@@ -250,10 +283,14 @@ def get_snapshot(
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG")
         img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-        log(f"Successfully got snapshot from URL {rtsp_url}.")
+        log(
+            f"Successfully got snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"  # noqa
+        )
         camera["image_base64"] = img_b64
     except Exception:
-        log(f"Failed to get snapshot from URL {rtsp_url}.")
+        log(
+            f"Failed to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"
+        )
         camera["image_base64"] = None
     return camera
 
@@ -285,7 +322,7 @@ def pick_cameras(
                     "latitude": -22.912,
                     "longitude": -43.230,
                     "attempt_classification": True,
-                    "identifier": "alagamento",
+                    "object": "alagamento",
                     "prompt": "You are ....",
                     "max_output_token": 300,
                     "temperature": 0.4,
@@ -346,6 +383,14 @@ def pick_cameras(
             df_cameras_h3.loc[mocked_index, "status"] = "chuva moderada"
             log(f'Mocked camera ID: {df_cameras_h3.loc[mocked_index]["id_camera"]}')
 
+    # expand dataframe when have multiples objects
+    df_cameras_h3_expanded = pd.DataFrame()
+    for _, row in df_cameras_h3.iterrows():
+        objetos = row["identificador"].split(",")
+        for objeto in objetos:
+            row["identificador"] = objeto.strip()
+            df_cameras_h3_expanded = pd.concat([df_cameras_h3_expanded, pd.DataFrame([row])])
+
     # download the object parameters data
     parameters_data_path = Path("/tmp/object_parameters.csv")
     if not download_file(url=object_parameters_url, output_path=parameters_data_path):
@@ -353,12 +398,12 @@ def pick_cameras(
     parameters = pd.read_csv(parameters_data_path)
 
     # add the parameters to the cameras
-    df_cameras_h3 = df_cameras_h3.merge(
+    df_cameras_h3_expanded = df_cameras_h3_expanded.merge(
         parameters, left_on="identificador", right_on="objeto", how="left"
     )
     # Set output
     output = []
-    for _, row in df_cameras_h3.iterrows():
+    for _, row in df_cameras_h3_expanded.iterrows():
         output.append(
             {
                 "id_camera": row["id_camera"],
@@ -367,7 +412,7 @@ def pick_cameras(
                 "latitude": row["geometry"].y,
                 "longitude": row["geometry"].x,
                 "attempt_classification": (row["status"] not in ["sem chuva", "chuva fraca"]),
-                "identifier": row["identificador"],
+                "object": row["identificador"],
                 "prompt": row["prompt"],
                 "max_output_token": row["max_output_token"],
                 "temperature": row["temperature"],
@@ -375,7 +420,9 @@ def pick_cameras(
                 "top_p": row["top_p"],
             }
         )
-    log(f"Picked cameras: {output}")
+
+    output_log = json.dumps(output, indent=4)
+    log(f"Picked cameras:\n {output_log}")
     return output
 
 
@@ -405,6 +452,11 @@ def update_flooding_api_data(
                                 "object": "alagamento",
                                 "label": True,
                                 "confidence": 0.7,
+                                "prompt": "You are ....",
+                                "max_output_token": 300,
+                                "temperature": 0.4,
+                                "top_k": 1,
+                                "top_p": 32,
                             }
                         ],
                     },
@@ -445,9 +497,14 @@ def update_flooding_api_data(
         # Add classifications
         ai_classification.append(
             {
-                "object": camera_with_image_and_classification["identifier"],
+                "object": camera_with_image_and_classification["object"],
                 "label": most_common_prediction,
                 "confidence": 0.7,
+                "prompt": camera_with_image_and_classification["prompt"],
+                "max_output_token": camera_with_image_and_classification["max_output_token"],
+                "temperature": camera_with_image_and_classification["temperature"],
+                "top_k": camera_with_image_and_classification["top_k"],
+                "top_p": camera_with_image_and_classification["top_k"],
             }
         )
         api_data.append(
