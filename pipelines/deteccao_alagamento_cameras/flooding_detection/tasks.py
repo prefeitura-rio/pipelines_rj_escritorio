@@ -5,18 +5,22 @@ import json
 import random
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
+import basedosdados as bd
 import cv2
 import geopandas as gpd
 import google.generativeai as genai
 import pandas as pd
 import pendulum
 import requests
+from google.cloud import bigquery
 from PIL import Image
 from prefect import task
 from prefeitura_rio.pipelines_utils.infisical import get_secret
+from prefeitura_rio.pipelines_utils.io import to_partitions
 from prefeitura_rio.pipelines_utils.logging import log
+from prefeitura_rio.pipelines_utils.pandas import parse_date_columns
 from prefeitura_rio.pipelines_utils.redis_pal import get_redis_client
 from redis_pal import RedisPal
 from shapely.geometry import Point
@@ -338,7 +342,7 @@ def pick_cameras(
         raise RuntimeError("Failed to download the cameras data.")
 
     cameras = pd.read_csv(cameras_data_path)
-
+    cameras["id_camera"] = cameras["id_camera"].astype(str).str.zfill(6)
     # get only selected cameras from google sheets
     cameras = cameras[cameras["identificador"].notna()]
 
@@ -426,14 +430,14 @@ def pick_cameras(
     return output
 
 
-@task
+@task(nout=2)
 def update_flooding_api_data(
     cameras_with_image_and_classification: List[Dict[str, Union[str, float, bool]]],
     data_key: str,
     last_update_key: str,
     predictions_buffer_key: str,
     redis_client: RedisPal,
-) -> None:
+) -> Tuple[List[Dict[str, Union[str, float, bool]]], bool]:
     """
     Updates Redis keys with flooding detection data and last update datetime (now).
 
@@ -523,3 +527,108 @@ def update_flooding_api_data(
     redis_client.set(data_key, api_data)
     redis_client.set(last_update_key, last_update.to_datetime_string())
     log("Successfully updated flooding detection data.")
+
+    has_api_data = not len(api_data) == 0
+    log(f"has_api_data: {has_api_data}")
+    return api_data, has_api_data
+
+
+@task(nout=2)
+def api_data_to_csv(
+    data_path: str | Path, api_data: List[Dict[str, Union[str, float, bool]]], api_model: str
+) -> Tuple[str | Path, pd.DataFrame]:
+    base_path = Path(data_path)
+
+    data_normalized = []
+    for d in api_data:
+        normalized_dict = {}
+        for k, v in d.items():
+            if k == "ai_classification":
+                if len(v) > 0:
+                    normalized_dict = normalized_dict | v[0]
+            else:
+                normalized_dict[k] = v
+        data_normalized.append(normalized_dict)
+    dataframe = pd.DataFrame.from_records(data_normalized)
+    dataframe["model"] = api_model
+    dataframe, partition_columns = parse_date_columns(
+        dataframe=dataframe, partition_date_column="datetime"
+    )
+    saved_files = to_partitions(
+        data=dataframe,
+        partition_columns=partition_columns,
+        savepath=base_path,
+        data_type="csv",
+        suffix=f"{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+    )
+    log(f"saved_files:{saved_files}")
+    return base_path, dataframe
+
+
+@task
+def upload_to_native_table(
+    dataset_id: str, table_id: str, dataframe: pd.DataFrame, wait=None
+) -> None:
+    """
+    Upload data to native table.
+    """
+    table = bd.Table(dataset_id=dataset_id, table_id=table_id)
+
+    # create some columns and cast type
+    dataframe["datetime"] = pd.to_datetime(dataframe["datetime"])
+    dataframe["data_particao"] = dataframe["datetime"].apply(lambda x: str(x)[:10])
+    dataframe["data_particao"] = pd.to_datetime(dataframe["data_particao"])
+
+    dataframe["geometry"] = (
+        "POINT ("
+        + dataframe["longitude"].astype(str)
+        + " "
+        + dataframe["latitude"].astype(str)
+        + ")"
+    )
+    dataframe["id_camera"] = dataframe["id_camera"].astype(str).str.zfill(6)
+
+    schema = [
+        bigquery.SchemaField("data_particao", "DATE"),
+        bigquery.SchemaField("datetime", "DATETIME"),
+        bigquery.SchemaField("id_camera", "STRING"),
+        bigquery.SchemaField("url_camera", "STRING"),
+        bigquery.SchemaField("model", "STRING"),
+        bigquery.SchemaField("object", "STRING"),
+        bigquery.SchemaField("label", "BOOL"),
+        bigquery.SchemaField("confidence", "FLOAT64"),
+        bigquery.SchemaField("prompt", "STRING"),
+        bigquery.SchemaField("max_output_token", "INT64"),
+        bigquery.SchemaField("temperature", "FLOAT64"),
+        bigquery.SchemaField("top_k", "INT64"),
+        bigquery.SchemaField("top_p", "INT64"),
+        bigquery.SchemaField("latitude", "FLOAT64"),
+        bigquery.SchemaField("longitude", "FLOAT64"),
+        bigquery.SchemaField("geometry", "GEOGRAPHY"),
+        bigquery.SchemaField("image_base64", "STRING"),
+    ]
+
+    job_config = bigquery.LoadJobConfig(
+        schema=schema,
+        # Optionally, set the write disposition. BigQuery appends loaded rows
+        # to an existing table by default, but with WRITE_TRUNCATE write
+        # disposition it replaces the table with the loaded data.
+        write_disposition="WRITE_APPEND",
+        time_partitioning=bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.DAY,
+            field="data_particao",  # name of column to use for partitioning
+        ),
+    )
+
+    col_order = [col.name for col in schema]
+    dataframe = dataframe[col_order]
+    cols = dataframe.columns.tolist()
+    shape = dataframe.shape
+    log(f"Write dataframe shape: {shape}")
+    log(f"Write dataframe columns: {cols}")
+
+    job = table.client["bigquery_prod"].load_table_from_dataframe(
+        dataframe, table.table_full_name["prod"], job_config=job_config
+    )
+
+    job.result()

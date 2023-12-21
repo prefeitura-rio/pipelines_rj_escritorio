@@ -2,19 +2,21 @@
 """
 Flow definition for flooding detection using AI.
 """
-from prefect import Parameter
+from prefect import Parameter, case
 from prefect.executors import LocalDaskExecutor
 from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
 from prefect.utilities.edges import unmapped
 from prefeitura_rio.pipelines_utils.custom import Flow
 from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
+from prefeitura_rio.pipelines_utils.tasks import create_table_and_upload_to_gcs
 
 from pipelines.constants import constants
 from pipelines.deteccao_alagamento_cameras.flooding_detection.schedules import (
     update_flooding_data_schedule,
 )
 from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import (
+    api_data_to_csv,
     get_api_key,
     get_last_update,
     get_prediction,
@@ -22,6 +24,7 @@ from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import (
     pick_cameras,
     task_get_redis_client,
     update_flooding_api_data,
+    upload_to_native_table,
 )
 
 with Flow(
@@ -67,6 +70,8 @@ with Flow(
         "redis_key_flooding_detection_last_update",
         default="flooding_detection_last_update",
     )
+    dataset_id = Parameter("dataset_id", default="ai_vision_detection")
+    table_id = Parameter("table_id", default="cameras_predicoes")
 
     # Flow
     redis_client = task_get_redis_client(
@@ -96,13 +101,33 @@ with Flow(
         google_api_key=unmapped(api_key),
         google_api_model=unmapped(google_api_model),
     )
-    update_flooding_api_data(
+
+    api_data, has_api_data = update_flooding_api_data(
         cameras_with_image_and_classification=cameras_with_image_and_classification,
         data_key=redis_key_flooding_detection_data,
         last_update_key=redis_key_flooding_detection_last_update,
         predictions_buffer_key=redis_key_predictions_buffer,
         redis_client=redis_client,
     )
+
+    with case(has_api_data, True):
+        data_path, dataframe = api_data_to_csv(
+            data_path="/tmp/api_data_cameras/", api_data=api_data, api_model=google_api_model
+        )
+
+        create_staging_table = create_table_and_upload_to_gcs(
+            data_path=data_path,
+            dataset_id=dataset_id,
+            table_id=table_id,
+            biglake_table=True,
+            dump_mode="append",
+        )
+        create_staging_table.set_upstream(data_path)
+
+        update_native_table = upload_to_native_table(
+            dataset_id=dataset_id, table_id=table_id, dataframe=dataframe
+        )
+        update_native_table.set_upstream(create_staging_table)
 
 
 rj_escritorio__flooding_detection__flow.storage = GCS(constants.GCS_FLOWS_BUCKET.value)

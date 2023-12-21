@@ -1,4 +1,4 @@
-SELECT 
+SELECT
     SAFE_CAST(REGEXP_REPLACE(LTRIM(cod_np ,'0') , r'\.0$', '') AS STRING) id_numero_porta,
     SAFE_CAST(REGEXP_REPLACE(LTRIM(cod_trecho ,'0') , r'\.0$', '') AS STRING) id_trecho,
     SAFE_CAST(REGEXP_REPLACE(LTRIM(cl ,'0') , r'\.0$', '') AS STRING) id_logradouro,

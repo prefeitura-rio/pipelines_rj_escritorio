@@ -1,4 +1,4 @@
-SELECT 
+SELECT
     SAFE_CAST(TRIM(sigla) AS STRING) AS sigla,
     SAFE_CAST(TRIM(nome) AS STRING) AS nome,
     SAFE_CAST(TRIM(legislacao) AS STRING) AS legislacao,
