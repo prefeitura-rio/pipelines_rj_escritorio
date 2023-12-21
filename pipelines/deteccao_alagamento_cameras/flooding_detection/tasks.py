@@ -5,7 +5,7 @@ import json
 import random
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 import cv2
 import geopandas as gpd
@@ -16,7 +16,9 @@ import requests
 from PIL import Image
 from prefect import task
 from prefeitura_rio.pipelines_utils.infisical import get_secret
+from prefeitura_rio.pipelines_utils.io import to_partitions
 from prefeitura_rio.pipelines_utils.logging import log
+from prefeitura_rio.pipelines_utils.pandas import parse_date_columns
 from prefeitura_rio.pipelines_utils.redis_pal import get_redis_client
 from redis_pal import RedisPal
 from shapely.geometry import Point
@@ -426,14 +428,14 @@ def pick_cameras(
     return output
 
 
-@task
+@task(nout=2)
 def update_flooding_api_data(
     cameras_with_image_and_classification: List[Dict[str, Union[str, float, bool]]],
     data_key: str,
     last_update_key: str,
     predictions_buffer_key: str,
     redis_client: RedisPal,
-) -> None:
+) -> Tuple[List[Dict[str, Union[str, float, bool]]], bool]:
     """
     Updates Redis keys with flooding detection data and last update datetime (now).
 
@@ -520,6 +522,42 @@ def update_flooding_api_data(
         )
 
     # Update API data
-    redis_client.set(data_key, api_data)
+    redis_client.set(
+        data_key,
+    )
     redis_client.set(last_update_key, last_update.to_datetime_string())
     log("Successfully updated flooding detection data.")
+
+    has_api_data = not len(api_data) == 0
+
+    return api_data, has_api_data
+
+
+def api_data_to_csv(
+    data_path: str | Path, api_data: List[Dict[str, Union[str, float, bool]]], api_model: str
+) -> str | Path:
+    base_path = Path(data_path)
+
+    data_normalized = []
+    for d in api_data:
+        normalized_dict = {}
+        for k, v in d.items():
+            if k == "ai_classification":
+                if len(v) > 0:
+                    normalized_dict = normalized_dict | v[0]
+            else:
+                normalized_dict[k] = v
+        data_normalized.append(normalized_dict)
+    dataframe = pd.DataFrame.from_records(data_normalized)
+    dataframe, partition_columns = parse_date_columns(
+        dataframe=dataframe, partition_date_column="datetime"
+    )
+    saved_files = to_partitions(
+        data=dataframe,
+        partition_columns=partition_columns,
+        savepath=base_path,
+        data_type="csv",
+        suffix=f"{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+    )
+    log(f"saved_files:{saved_files}")
+    return base_path
