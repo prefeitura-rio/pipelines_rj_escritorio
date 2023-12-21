@@ -7,12 +7,14 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
+import basedosdados as bd
 import cv2
 import geopandas as gpd
 import google.generativeai as genai
 import pandas as pd
 import pendulum
 import requests
+from google.cloud import bigquery
 from PIL import Image
 from prefect import task
 from prefeitura_rio.pipelines_utils.infisical import get_secret
@@ -531,10 +533,10 @@ def update_flooding_api_data(
     return api_data, has_api_data
 
 
-@task
+@task(nout=2)
 def api_data_to_csv(
     data_path: str | Path, api_data: List[Dict[str, Union[str, float, bool]]], api_model: str
-) -> str | Path:
+) -> Tuple[str | Path, pd.DataFrame]:
     base_path = Path(data_path)
 
     data_normalized = []
@@ -560,4 +562,66 @@ def api_data_to_csv(
         suffix=f"{datetime.now().strftime('%Y%m%d-%H%M%S')}",
     )
     log(f"saved_files:{saved_files}")
-    return base_path
+    return base_path, dataframe
+
+
+@task
+def upload_to_native_table(
+    dataset_id: str, table_id: str, dataframe: pd.DataFrame, wait=None
+) -> None:
+    """
+    Upload data to native table.
+    """
+    table = bd.Table(dataset_id=dataset_id, table_id=table_id)
+    dataframe["data_particao"] = dataframe["datetime"].apply(lambda x: str(x)[:10])
+    dataframe["geometry"] = (
+        "POINT ("
+        + dataframe["longitude"].astype(str)
+        + ", "
+        + dataframe["latitude"].astype(str)
+        + ")"
+    )
+    schema = [
+        bigquery.SchemaField("data_particao", "DATE"),
+        bigquery.SchemaField("datetime", "DATETIME"),
+        bigquery.SchemaField("id_camera", "STRING"),
+        bigquery.SchemaField("url_camera", "STRING"),
+        bigquery.SchemaField("model", "STRING"),
+        bigquery.SchemaField("object", "STRING"),
+        bigquery.SchemaField("label", "STRING"),
+        bigquery.SchemaField("confidence", "FLOAT64"),
+        bigquery.SchemaField("prompt", "STRING"),
+        bigquery.SchemaField("max_output_token", "STRING"),
+        bigquery.SchemaField("temperature", "FLOAT64"),
+        bigquery.SchemaField("top_k", "INT64"),
+        bigquery.SchemaField("top_p", "INT64"),
+        bigquery.SchemaField("latitude", "FLOAT64"),
+        bigquery.SchemaField("longitude", "FLOAT64"),
+        bigquery.SchemaField("geometry", "GEOGRAPHY"),
+        bigquery.SchemaField("image_base64", "STRING"),
+    ]
+
+    job_config = bigquery.LoadJobConfig(
+        schema=schema,
+        # Optionally, set the write disposition. BigQuery appends loaded rows
+        # to an existing table by default, but with WRITE_TRUNCATE write
+        # disposition it replaces the table with the loaded data.
+        write_disposition="WRITE_APPEND",
+        time_partitioning=bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.DAY,
+            field="data_particao",  # name of column to use for partitioning
+        ),
+    )
+
+    col_order = [col.name for col in schema]
+    dataframe = dataframe[col_order]
+    cols = dataframe.columns.tolist()
+    shape = dataframe.shape
+    log(f"Write dataframe shape: {shape}")
+    log(f"Write dataframe columns: {cols}")
+
+    job = table.client["bigquery_prod"].load_table_from_dataframe(
+        dataframe, table.table_full_name["prod"], job_config=job_config
+    )
+
+    job.result()

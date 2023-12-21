@@ -1,3 +1,14 @@
+{{
+    config(
+        materialized='incremental',
+        partition_by={
+            "field": "data_particao",
+            "data_type": "date",
+            "granularity": "day",
+        }
+    )
+}}
+
 SELECT
   CAST(datetime AS DATETIME) AS datetime,
   id_camera,
@@ -5,7 +16,7 @@ SELECT
   model,
   object,
   label,
-  confidence,
+  CAST(confidence AS FLOAT64) AS confidence,
   prompt,
   CAST(max_output_token AS INT64) AS max_output_token,
   CAST(temperature AS FLOAT64) AS temperature,
@@ -20,3 +31,13 @@ SELECT
   image_base64,
   CAST(data_particao AS DATE) data_particao,
 FROM `rj-escritorio-dev.ai_vision_detection_staging.cameras_predicoes`
+WHERE CAST(data_particao AS DATE) < CURRENT_DATE('America/Sao_Paulo')
+
+{% if is_incremental() %}
+
+{% set max_datetime = run_query("SELECT gr FROM (SELECT IF(max(CAST(datetime AS DATETIME)) > CURRENT_DATETIME('America/Sao_Paulo'), CURRENT_DATETIME('America/Sao_Paulo'), max(CAST(datetime AS DATETIME))) as gr FROM " ~ this ~ ")").columns[0].values()[0] %}
+
+AND
+    CAST(datetime AS DATETIME) > ("{{ max_datetime }}")
+
+{% endif %}
