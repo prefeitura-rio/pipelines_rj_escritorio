@@ -342,7 +342,7 @@ def pick_cameras(
         raise RuntimeError("Failed to download the cameras data.")
 
     cameras = pd.read_csv(cameras_data_path)
-
+    cameras["id_camera"] = cameras["id_camera"].astype(str).str.zfill(6)
     # get only selected cameras from google sheets
     cameras = cameras[cameras["identificador"].notna()]
 
@@ -581,6 +581,8 @@ def upload_to_native_table(
         + dataframe["latitude"].astype(str)
         + ")"
     )
+    dataframe["id_camera"] = dataframe["id_camera"].astype(str).str.zfill(6)
+
     schema = [
         bigquery.SchemaField("data_particao", "DATE"),
         bigquery.SchemaField("datetime", "DATETIME"),
@@ -611,6 +613,7 @@ def upload_to_native_table(
             type_=bigquery.TimePartitioningType.DAY,
             field="data_particao",  # name of column to use for partitioning
         ),
+        source_format=bigquery.SourceFormat.CSV,
     )
 
     col_order = [col.name for col in schema]
