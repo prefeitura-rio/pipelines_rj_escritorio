@@ -121,7 +121,7 @@ def get_prediction(
                 "longitude": -43.230,
                 "image_base64": "base64...",
                 "attempt_classification": True,
-                "identifier": "alagamento",
+                "object": "alagamento",
                 "prompt": "You are ....",
                 "max_output_token": 300,
                 "temperature": 0.4,
@@ -155,7 +155,7 @@ def get_prediction(
     # - Add confidence value
     # Setup the request
     log(f"Getting prediction for id_camera: {camera_with_image['id_camera']}")  # noqa
-    log(f"Getting prediction for object: {camera_with_image['identifier']}")  # noqa
+    log(f"Getting prediction for object: {camera_with_image['object']}")  # noqa
     log(
         f"Getting prediction for camera_with_image: {camera_with_image['image_base64'][:20] + '...' if camera_with_image['image_base64'] else None}"  # noqa
     )
@@ -163,7 +163,7 @@ def get_prediction(
         log("Skipping prediction for `attempt_classification` is False.")
         camera_with_image["ai_classification"] = [
             {
-                "object": camera_with_image["identifier"],
+                "object": camera_with_image["object"],
                 "label": False,
                 "confidence": 0.7,
                 "prompt": camera_with_image["prompt"],
@@ -178,7 +178,7 @@ def get_prediction(
         log("Skipping prediction for `image_base64` is None.")
         camera_with_image["ai_classification"] = [
             {
-                "object": camera_with_image["identifier"],
+                "object": camera_with_image["object"],
                 "label": None,
                 "confidence": 0.7,
                 "prompt": camera_with_image["prompt"],
@@ -215,7 +215,7 @@ def get_prediction(
 
     camera_with_image["ai_classification"] = [
         {
-            "object": camera_with_image["identifier"],
+            "object": camera_with_image["object"],
             "label": label,
             "confidence": 0.7,
             "prompt": camera_with_image["prompt"],
@@ -248,7 +248,7 @@ def get_snapshot(
                 "longitude": -43.230,
                 "image_base64": "base64...",
                 "attempt_classification": True,
-                "identifier": "alagamento",
+                "object": "alagamento",
                 "prompt": "You are ....",
                 "max_output_token": 300,
                 "temperature": 0.4,
@@ -270,7 +270,7 @@ def get_snapshot(
     """
     try:
         camera_id = camera["id_camera"]
-        object = camera["identifier"]
+        object = camera["object"]
         rtsp_url = camera["url_camera"]
 
         cap = cv2.VideoCapture(rtsp_url)
@@ -322,7 +322,7 @@ def pick_cameras(
                     "latitude": -22.912,
                     "longitude": -43.230,
                     "attempt_classification": True,
-                    "identifier": "alagamento",
+                    "object": "alagamento",
                     "prompt": "You are ....",
                     "max_output_token": 300,
                     "temperature": 0.4,
@@ -412,7 +412,7 @@ def pick_cameras(
                 "latitude": row["geometry"].y,
                 "longitude": row["geometry"].x,
                 "attempt_classification": (row["status"] not in ["sem chuva", "chuva fraca"]),
-                "identifier": row["identificador"],
+                "object": row["identificador"],
                 "prompt": row["prompt"],
                 "max_output_token": row["max_output_token"],
                 "temperature": row["temperature"],
@@ -497,7 +497,7 @@ def update_flooding_api_data(
         # Add classifications
         ai_classification.append(
             {
-                "object": camera_with_image_and_classification["identifier"],
+                "object": camera_with_image_and_classification["object"],
                 "label": most_common_prediction,
                 "confidence": 0.7,
                 "prompt": camera_with_image_and_classification["prompt"],
