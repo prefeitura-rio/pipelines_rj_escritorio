@@ -346,6 +346,14 @@ def pick_cameras(
             df_cameras_h3.loc[mocked_index, "status"] = "chuva moderada"
             log(f'Mocked camera ID: {df_cameras_h3.loc[mocked_index]["id_camera"]}')
 
+    # expand dataframe when have multiples objects
+    df_cameras_h3_expanded = pd.DataFrame()
+    for _, row in df_cameras_h3.iterrows():
+        objetos = row["identificador"].split(",")
+        for objeto in objetos:
+            row["identificador"] = objeto
+            df_cameras_h3_expanded = pd.concat([df_cameras_h3_expanded, pd.DataFrame([row])])
+
     # download the object parameters data
     parameters_data_path = Path("/tmp/object_parameters.csv")
     if not download_file(url=object_parameters_url, output_path=parameters_data_path):
@@ -353,12 +361,12 @@ def pick_cameras(
     parameters = pd.read_csv(parameters_data_path)
 
     # add the parameters to the cameras
-    df_cameras_h3 = df_cameras_h3.merge(
+    df_cameras_h3_expanded = df_cameras_h3_expanded.merge(
         parameters, left_on="identificador", right_on="objeto", how="left"
     )
     # Set output
     output = []
-    for _, row in df_cameras_h3.iterrows():
+    for _, row in df_cameras_h3_expanded.iterrows():
         output.append(
             {
                 "id_camera": row["id_camera"],
