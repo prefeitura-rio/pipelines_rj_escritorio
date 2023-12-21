@@ -188,7 +188,7 @@ def get_prediction(
         ]
         return camera_with_image
 
-    flooding_detected = None
+    label = None
 
     img = Image.open(io.BytesIO(base64.b64decode(camera_with_image["image_base64"])))
     genai.configure(api_key=google_api_key)
@@ -207,14 +207,14 @@ def get_prediction(
     responses.resolve()
 
     json_string = responses.text.replace("```json\n", "").replace("\n```", "")
-    flooding_detected = json.loads(json_string)["flooding_detected"]
+    label = json.loads(json_string)["label"]
 
-    log(f"Successfully got prediction: {flooding_detected}")
+    log(f"Successfully got prediction: {label}")
 
     camera_with_image["ai_classification"] = [
         {
             "object": camera_with_image["identifier"],
-            "label": flooding_detected,
+            "label": label,
             "confidence": 0.7,
             "prompt": camera_with_image["prompt"],
             "max_output_token": camera_with_image["max_output_token"],
