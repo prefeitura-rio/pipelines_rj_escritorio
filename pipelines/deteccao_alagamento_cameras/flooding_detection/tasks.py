@@ -170,7 +170,7 @@ def get_prediction(
                 "max_output_token": camera_with_image["max_output_token"],
                 "temperature": camera_with_image["temperature"],
                 "top_k": camera_with_image["top_k"],
-                "top_p": camera_with_image["top_k"],
+                "top_p": camera_with_image["top_p"],
             }
         ]
         return camera_with_image
@@ -185,7 +185,7 @@ def get_prediction(
                 "max_output_token": camera_with_image["max_output_token"],
                 "temperature": camera_with_image["temperature"],
                 "top_k": camera_with_image["top_k"],
-                "top_p": camera_with_image["top_k"],
+                "top_p": camera_with_image["top_p"],
             }
         ]
         return camera_with_image
@@ -222,7 +222,7 @@ def get_prediction(
             "max_output_token": camera_with_image["max_output_token"],
             "temperature": camera_with_image["temperature"],
             "top_k": camera_with_image["top_k"],
-            "top_p": camera_with_image["top_k"],
+            "top_p": camera_with_image["top_p"],
         }
     ]
 
@@ -504,7 +504,7 @@ def update_flooding_api_data(
                 "max_output_token": camera_with_image_and_classification["max_output_token"],
                 "temperature": camera_with_image_and_classification["temperature"],
                 "top_k": camera_with_image_and_classification["top_k"],
-                "top_p": camera_with_image_and_classification["top_k"],
+                "top_p": camera_with_image_and_classification["top_p"],
             }
         )
         api_data.append(
