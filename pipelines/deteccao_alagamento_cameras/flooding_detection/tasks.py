@@ -549,6 +549,7 @@ def api_data_to_csv(
                 normalized_dict[k] = v
         data_normalized.append(normalized_dict)
     dataframe = pd.DataFrame.from_records(data_normalized)
+    dataframe["model"] = api_model
     dataframe, partition_columns = parse_date_columns(
         dataframe=dataframe, partition_date_column="datetime"
     )
