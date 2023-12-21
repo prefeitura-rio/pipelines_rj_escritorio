@@ -533,6 +533,7 @@ def update_flooding_api_data(
     return api_data, has_api_data
 
 
+@task
 def api_data_to_csv(
     data_path: str | Path, api_data: List[Dict[str, Union[str, float, bool]]], api_model: str
 ) -> str | Path:
