@@ -111,7 +111,7 @@ with Flow(
     )
 
     with case(has_api_data, True):
-        dataframe, data_path = api_data_to_csv(
+        data_path, dataframe = api_data_to_csv(
             data_path="/tmp/api_data_cameras/", api_data=api_data, api_model=google_api_model
         )
 
