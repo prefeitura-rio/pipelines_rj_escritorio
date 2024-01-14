@@ -516,17 +516,28 @@ def update_flooding_api_data(
                 "top_p": camera_with_image_and_classification["top_p"],
             }
         )
-        api_data.append(
-            {
-                "datetime": last_update.to_datetime_string(),
-                "id_camera": camera_with_image_and_classification["id_camera"],
-                "url_camera": camera_with_image_and_classification["url_camera"],
-                "latitude": camera_with_image_and_classification["latitude"],
-                "longitude": camera_with_image_and_classification["longitude"],
-                "image_base64": camera_with_image_and_classification["image_base64"],
-                "ai_classification": ai_classification,
-            }
-        )
+
+        api_data_dict = {
+            "datetime": last_update.to_datetime_string(),
+            "id_camera": camera_with_image_and_classification["id_camera"],
+            "url_camera": camera_with_image_and_classification["url_camera"],
+            "latitude": camera_with_image_and_classification["latitude"],
+            "longitude": camera_with_image_and_classification["longitude"],
+            "image_base64": camera_with_image_and_classification["image_base64"],
+            "ai_classification": ai_classification,
+        }
+        api_data.append(api_data_dict)
+
+    bq_data = api_data.copy()
+    # clean api_data
+    for d in api_data:
+        d.pop("image_base64", None)
+        for c in d["ai_classification"]:
+            c.pop("prompt", None)
+            c.pop("max_output_token", None)
+            c.pop("temperature", None)
+            c.pop("top_k", None)
+            c.pop("top_p", None)
 
     # Update API data
     redis_client.set(data_key, api_data)
@@ -535,7 +546,7 @@ def update_flooding_api_data(
 
     has_api_data = not len(api_data) == 0
     log(f"has_api_data: {has_api_data}")
-    return api_data, has_api_data
+    return bq_data, has_api_data
 
 
 @task(nout=2)
