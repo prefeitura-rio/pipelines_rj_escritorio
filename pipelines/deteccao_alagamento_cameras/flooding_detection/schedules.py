@@ -22,6 +22,7 @@ update_flooding_data_schedule = Schedule(
             parameter_defaults={
                 "dataset_id": "ai_vision_detection",
                 "table_id": "cameras_predicoes",
+                "use_rain_api_data": False,
                 "api_key_secret_path": "/flooding-detection",
                 "cameras_geodf_url": "https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=914166579",  # noqa
                 "google_api_model": "gemini-pro-vision",

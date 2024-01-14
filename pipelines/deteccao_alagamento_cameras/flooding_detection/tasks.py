@@ -308,6 +308,7 @@ def pick_cameras(
     predictions_buffer_key: str,
     redis_client: RedisPal,
     number_mock_rain_cameras: int = 0,
+    use_rain_api_data: bool = True,
 ) -> List[Dict[str, Union[str, float]]]:
     """
     Picks cameras based on the raining hexagons and last update.
@@ -353,17 +354,21 @@ def pick_cameras(
     log("Successfully downloaded cameras data.")
     log(f"Cameras shape: {df_cameras.shape}")
 
-    # Get rain data
-    rain_data = requests.get(rain_api_data_url).json()
-    df_rain = pd.DataFrame(rain_data)
-    df_rain["last_update"] = last_update
-    log("Successfully downloaded rain data.")
-    log(f"Rain data shape: {df_rain.shape}")
+    if use_rain_api_data:
+        # Get rain data
+        rain_data = requests.get(rain_api_data_url).json()
+        df_rain = pd.DataFrame(rain_data)
+        df_rain["last_update"] = last_update
+        log("Successfully downloaded rain data.")
+        log(f"Rain data shape: {df_rain.shape}")
 
-    # Join the dataframes
-    df_cameras_h3 = pd.merge(df_cameras, df_rain, how="left", on="id_h3")
-    log("Successfully joined the dataframes.")
-    log(f"Cameras H3 shape: {df_cameras_h3.shape}")
+        # Join the dataframes
+        df_cameras_h3 = pd.merge(df_cameras, df_rain, how="left", on="id_h3")
+        log("Successfully joined the dataframes.")
+        log(f"Cameras H3 shape: {df_cameras_h3.shape}")
+    else:
+        df_cameras_h3 = df_cameras.copy()
+        df_cameras_h3["status"] = None
 
     # Modify status based on buffers
     for _, row in df_cameras_h3.iterrows():
@@ -415,7 +420,7 @@ def pick_cameras(
                 "url_camera": row["rtsp"],
                 "latitude": row["geometry"].y,
                 "longitude": row["geometry"].x,
-                "attempt_classification": (row["status"] not in ["sem chuva", "chuva fraca"]),
+                "attempt_classification": True,  # noqa (row["status"] not in ["sem chuva", "chuva fraca"]),
                 "object": row["identificador"],
                 "prompt": row["prompt"],
                 "max_output_token": row["max_output_token"],

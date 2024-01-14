@@ -52,6 +52,10 @@ with Flow(
         required=True,
         default="https://docs.google.com/spreadsheets/d/122uOaPr8YdW5PTzrxSPF-FD0tgco596HqgB7WK7cHFw/edit#gid=1580662721",  # noqa
     )
+    use_rain_api_data = Parameter(
+        "use_rain_api_data",
+        default=True,
+    )
     rain_api_data_url = Parameter(
         "rain_api_url",
         default="https://api.dados.rio/v2/clima_pluviometro/precipitacao_15min/",
@@ -90,6 +94,7 @@ with Flow(
         predictions_buffer_key=redis_key_predictions_buffer,
         redis_client=redis_client,
         number_mock_rain_cameras=mocked_cameras_number,
+        use_rain_api_data=use_rain_api_data,
     )
     api_key = get_api_key(secret_path=api_key_secret_path, secret_name="GEMINI-PRO-VISION-API-KEY")
     cameras_with_image = get_snapshot.map(
