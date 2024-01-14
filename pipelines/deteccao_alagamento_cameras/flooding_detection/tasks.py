@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+from copy import deepcopy
 import io
 import json
 import random
@@ -528,7 +529,7 @@ def update_flooding_api_data(
         }
         api_data.append(api_data_dict)
 
-    bq_data = api_data.copy()
+    bq_data = deepcopy(api_data)
     # clean api_data
     for d in api_data:
         d.pop("image_base64", None)
@@ -538,7 +539,8 @@ def update_flooding_api_data(
             c.pop("temperature", None)
             c.pop("top_k", None)
             c.pop("top_p", None)
-
+    log(f"{api_data}")
+    log(f"{bq_data}")
     # Update API data
     redis_client.set(data_key, api_data)
     redis_client.set(last_update_key, last_update.to_datetime_string())
@@ -546,6 +548,7 @@ def update_flooding_api_data(
 
     has_api_data = not len(api_data) == 0
     log(f"has_api_data: {has_api_data}")
+
     return bq_data, has_api_data
 
 
