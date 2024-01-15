@@ -3,7 +3,6 @@
 Flow definition for flooding detection using AI.
 """
 from prefect import Parameter, case
-from prefect.executors import LocalDaskExecutor
 from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
 from prefect.utilities.edges import unmapped
@@ -74,6 +73,8 @@ with Flow(
         "redis_key_flooding_detection_last_update",
         default="flooding_detection_last_update",
     )
+    resize_width = Parameter("resize_width", default=640)
+    resize_height = Parameter("resize_height", default=480)
     dataset_id = Parameter("dataset_id", default="ai_vision_detection")
     table_id = Parameter("table_id", default="cameras_predicoes")
 
@@ -99,6 +100,8 @@ with Flow(
     api_key = get_api_key(secret_path=api_key_secret_path, secret_name="GEMINI-PRO-VISION-API-KEY")
     cameras_with_image = get_snapshot.map(
         camera=cameras,
+        resize_width=unmapped(resize_width),
+        resize_height=unmapped(resize_height),
     )
 
     cameras_with_image_and_classification = get_prediction.map(

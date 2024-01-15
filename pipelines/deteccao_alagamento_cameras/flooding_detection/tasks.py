@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import base64
-from copy import deepcopy
 import io
 import json
 import random
+from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
@@ -240,6 +240,8 @@ def get_prediction(
 )
 def get_snapshot(
     camera: Dict[str, Union[str, float]],
+    resize_width: int = 640,
+    resize_height: int = 480,
 ) -> Dict[str, Union[str, float]]:
     """
     Gets a snapshot from a camera.
@@ -285,6 +287,7 @@ def get_snapshot(
         cap.release()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(frame)
+        img.thumbnail((resize_width, resize_height))
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG")
         img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
