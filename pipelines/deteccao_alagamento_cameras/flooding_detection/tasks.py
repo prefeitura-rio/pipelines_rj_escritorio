@@ -7,6 +7,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
+from uuid import uuid4
 
 import basedosdados as bd
 import cv2
@@ -18,6 +19,7 @@ import requests
 from google.cloud import bigquery
 from PIL import Image
 from prefect import task
+from prefeitura_rio.pipelines_utils.gcs import upload_file_to_bucket
 from prefeitura_rio.pipelines_utils.infisical import get_secret
 from prefeitura_rio.pipelines_utils.io import to_partitions
 from prefeitura_rio.pipelines_utils.logging import log
@@ -528,6 +530,7 @@ def update_flooding_api_data(
             "latitude": camera_with_image_and_classification["latitude"],
             "longitude": camera_with_image_and_classification["longitude"],
             "image_base64": camera_with_image_and_classification["image_base64"],
+            "image_url": camera_with_image_and_classification["image_url"],
             "ai_classification": ai_classification,
         }
         api_data.append(api_data_dict)
@@ -653,3 +656,77 @@ def upload_to_native_table(
     )
 
     job.result()
+
+
+@task
+def upload_image_to_gcs(
+    camera_with_image: Dict[str, Union[str, float]], bucket_name: str, blob_base_path: str
+) -> Dict[str, Union[str, float]]:
+    """
+    Uploads an image to GCS.
+
+    Args:
+        camera_with_image: The camera with image in the following format:
+            {
+                "id_camera": "1",
+                "url_camera": "rtsp://...",
+                "latitude": -22.912,
+                "longitude": -43.230,
+                "image_base64": "base64...",
+                "attempt_classification": True,
+                "object": "alagamento",
+                "prompt": "You are ....",
+                "max_output_token": 300,
+                "temperature": 0.4,
+                "top_k": 1,
+                "top_p": 32,
+            }
+        bucket_name: The GCS bucket name.
+        blob_base_path: The GCS blob base path.
+
+    Returns:
+        The camera with image in the following format:
+            {
+                "id_camera": "1",
+                "url_camera": "rtsp://...",
+                "latitude": -22.912,
+                "longitude": -43.230,
+                "image_base64": "base64...",
+                "attempt_classification": True,
+                "object": "alagamento",
+                "prompt": "You are ....",
+                "max_output_token": 300,
+                "temperature": 0.4,
+                "top_k": 1,
+                "top_p": 32,
+                "image_url": "https://storage.googleapis.com/...",
+            }
+    """
+    if not camera_with_image["image_base64"]:
+        log("Skipping upload for `image_base64` is None.")
+        camera_with_image["image_url"] = None
+        return camera_with_image
+    try:
+        # Remove trailing slash
+        blob_base_path = blob_base_path.rstrip("/")
+        # Save image to temp file
+        tmp_fname = f"/tmp/{uuid4()}.png"
+        img = Image.open(io.BytesIO(base64.b64decode(camera_with_image["image_base64"])))
+        with open(tmp_fname, "wb") as f:
+            img.save(f, format="PNG")
+        # Set blob path
+        camera_id = camera_with_image["id_camera"]
+        blob_path = f"{blob_base_path}/{camera_id}.png"
+        log(f"Uploading image to GCS: {blob_path}")
+        blob = upload_file_to_bucket(
+            bucket_name=bucket_name,
+            file_path=tmp_fname,
+            destination_blob_name=blob_path,
+        )
+        image_url = blob.public_url
+        camera_with_image["image_url"] = image_url
+        log(f"Successfully uploaded image to GCS: {blob_path}")
+    except Exception:
+        log(f"Failed to upload image to GCS: {blob_path}")
+        camera_with_image["image_url"] = None
+    return camera_with_image

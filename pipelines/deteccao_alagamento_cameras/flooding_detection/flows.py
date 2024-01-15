@@ -23,6 +23,7 @@ from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import (
     pick_cameras,
     task_get_redis_client,
     update_flooding_api_data,
+    upload_image_to_gcs,
     upload_to_native_table,
 )
 
@@ -75,6 +76,14 @@ with Flow(
     )
     resize_width = Parameter("resize_width", default=640)
     resize_height = Parameter("resize_height", default=480)
+    image_upload_bucket = Parameter(
+        "image_upload_bucket",
+        default="datario-public",
+    )
+    image_upload_blob_prefix = Parameter(
+        "image_upload_blob_prefix",
+        default="flooding_detection/latest_snapshots",
+    )
     dataset_id = Parameter("dataset_id", default="ai_vision_detection")
     table_id = Parameter("table_id", default="cameras_predicoes")
 
@@ -104,8 +113,14 @@ with Flow(
         resize_height=unmapped(resize_height),
     )
 
-    cameras_with_image_and_classification = get_prediction.map(
+    cameras_with_image_url = upload_image_to_gcs.map(
         camera_with_image=cameras_with_image,
+        bucket_name=unmapped(image_upload_bucket),
+        blob_base_path=unmapped(image_upload_blob_prefix),
+    )
+
+    cameras_with_image_and_classification = get_prediction.map(
+        camera_with_image=cameras_with_image_url,
         google_api_key=unmapped(api_key),
         google_api_model=unmapped(google_api_model),
     )
