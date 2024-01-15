@@ -15,6 +15,22 @@ from prefeitura_rio.pipelines_utils.logging import log
 from prefeitura_rio.pipelines_utils.pandas import remove_columns_accents
 from redis_pal import RedisPal
 from shapely.geometry import Point, Polygon
+from PIL import Image, ImageDraw, ImageFont
+
+
+def add_text_to_image(image: Image = None, text: str = None):
+    # width, height = image.size
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.load_default(size=20)
+
+    text_color = (255, 255, 255)
+    margin = 10
+    x = 0 + margin
+    y = 0 + margin
+    text_position = (x, y)
+
+    draw.text(text_position, text, font=font, fill=text_color)
+    return image
 
 
 def download_file(url: str, output_path: Union[str, Path]) -> bool:
