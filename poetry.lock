@@ -1427,6 +1427,21 @@ grpcio = ">=1.59.0"
 protobuf = ">=4.21.6"
 
 [[package]]
+name = "gspread"
+version = "5.12.4"
+description = "Google Spreadsheets Python API"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "gspread-5.12.4-py3-none-any.whl", hash = "sha256:1e453d87e0fde23bc5546e33eb684cf8b8c26540615f2f1ae004a9084a29051d"},
+    {file = "gspread-5.12.4.tar.gz", hash = "sha256:3fcef90183f15d3c9233b4caa021a83682f2b2ee678340c42d7ca7d8be98c6d1"},
+]
+
+[package.dependencies]
+google-auth = ">=1.12.0"
+google-auth-oauthlib = ">=0.4.1"
+
+[[package]]
 name = "h3"
 version = "3.7.6"
 description = "Hierarchical hexagonal geospatial indexing system"
@@ -2650,8 +2665,9 @@ geojsplit = {version = "^0.1.2", optional = true}
 geopandas = {version = "^0.14.1", optional = true}
 geopy = {version = "^2.4.1", optional = true}
 google-cloud-storage = {version = "^2.10.0", optional = true}
+gspread = {version = "^5.12.4", optional = true}
 infisical = {version = "^1.4.2", optional = true}
-jinja2 = "^3.1.2"
+jinja2 = {version = "^3.1.2", optional = true}
 loguru = "^0.7.0"
 pandas = {version = "^2.0.3", optional = true}
 prefect = {version = "1.4.1", optional = true}
@@ -2664,17 +2680,17 @@ sentry-sdk = {version = "^1.29.2", optional = true}
 shapely = {version = "^2.0.2", optional = true}
 
 [package.extras]
-all = ["aiohttp (>=3.8.5,<4.0.0)", "basedosdados[upload] (==2.0.0b15)", "croniter (>=2.0.1,<3.0.0)", "cx-oracle (>=8.3.0,<9.0.0)", "dask (>=2023.11.0,<2024.0.0)", "earthengine-api (>=0.1.379,<0.2.0)", "geojsplit (>=0.1.2,<0.2.0)", "geopandas (>=0.14.1,<0.15.0)", "geopy (>=2.4.1,<3.0.0)", "google-cloud-storage (>=2.10.0,<3.0.0)", "infisical (>=1.4.2,<2.0.0)", "jinja2 (>=3.1.2,<4.0.0)", "numpy (>=1.23.3,<2.0.0)", "pandas (>=2.0.3,<3.0.0)", "pendulum (>=2.1.2,<3.0.0)", "prefect (==1.4.1)", "pymongo (>=4.6.0,<5.0.0)", "pymysql (>=1.1.0,<2.0.0)", "pyodbc (>=5.0.1,<6.0.0)", "pytz (>=2023.3,<2024.0)", "redis-pal (>=1.0.0,<2.0.0)", "requests (>=2.31.0,<3.0.0)", "scikit-learn (>=1.1.2,<2.0.0)", "sentry-sdk (>=1.29.2,<2.0.0)", "shapely (>=2.0.2,<3.0.0)"]
+all = ["aiohttp (>=3.8.5,<4.0.0)", "basedosdados[upload] (==2.0.0b15)", "croniter (>=2.0.1,<3.0.0)", "cx-oracle (>=8.3.0,<9.0.0)", "dask (>=2023.11.0,<2024.0.0)", "earthengine-api (>=0.1.379,<0.2.0)", "geojsplit (>=0.1.2,<0.2.0)", "geopandas (>=0.14.1,<0.15.0)", "geopy (>=2.4.1,<3.0.0)", "google-cloud-storage (>=2.10.0,<3.0.0)", "gspread (>=5.12.4,<6.0.0)", "infisical (>=1.4.2,<2.0.0)", "jinja2 (>=3.1.2,<4.0.0)", "numpy (>=1.23.3,<2.0.0)", "pandas (>=2.0.3,<3.0.0)", "pendulum (>=2.1.2,<3.0.0)", "prefect (==1.4.1)", "pymongo (>=4.6.0,<5.0.0)", "pymysql (>=1.1.0,<2.0.0)", "pyodbc (>=5.0.1,<6.0.0)", "pytz (>=2023.3,<2024.0)", "redis-pal (>=1.0.0,<2.0.0)", "requests (>=2.31.0,<3.0.0)", "scikit-learn (>=1.1.2,<2.0.0)", "sentry-sdk (>=1.29.2,<2.0.0)", "shapely (>=2.0.2,<3.0.0)"]
 metrics = ["numpy (>=1.23.3,<2.0.0)", "scikit-learn (>=1.1.2,<2.0.0)"]
 pipelines = ["basedosdados[upload] (==2.0.0b15)", "dask (>=2023.11.0,<2024.0.0)", "google-cloud-storage (>=2.10.0,<3.0.0)", "infisical (>=1.4.2,<2.0.0)", "jinja2 (>=3.1.2,<4.0.0)", "pandas (>=2.0.3,<3.0.0)", "prefect (==1.4.1)", "sentry-sdk (>=1.29.2,<2.0.0)"]
-pipelines-templates = ["croniter (>=2.0.1,<3.0.0)", "cx-oracle (>=8.3.0,<9.0.0)", "earthengine-api (>=0.1.379,<0.2.0)", "geojsplit (>=0.1.2,<0.2.0)", "geopandas (>=0.14.1,<0.15.0)", "geopy (>=2.4.1,<3.0.0)", "jinja2 (>=3.1.2,<4.0.0)", "pymongo (>=4.6.0,<5.0.0)", "pymysql (>=1.1.0,<2.0.0)", "pyodbc (>=5.0.1,<6.0.0)", "redis-pal (>=1.0.0,<2.0.0)", "requests (>=2.31.0,<3.0.0)", "shapely (>=2.0.2,<3.0.0)"]
+pipelines-templates = ["croniter (>=2.0.1,<3.0.0)", "cx-oracle (>=8.3.0,<9.0.0)", "earthengine-api (>=0.1.379,<0.2.0)", "geojsplit (>=0.1.2,<0.2.0)", "geopandas (>=0.14.1,<0.15.0)", "geopy (>=2.4.1,<3.0.0)", "gspread (>=5.12.4,<6.0.0)", "jinja2 (>=3.1.2,<4.0.0)", "pymongo (>=4.6.0,<5.0.0)", "pymysql (>=1.1.0,<2.0.0)", "pyodbc (>=5.0.1,<6.0.0)", "redis-pal (>=1.0.0,<2.0.0)", "requests (>=2.31.0,<3.0.0)", "shapely (>=2.0.2,<3.0.0)"]
 sgrc = ["aiohttp (>=3.8.5,<4.0.0)", "pendulum (>=2.1.2,<3.0.0)", "pytz (>=2023.3,<2024.0)", "requests (>=2.31.0,<3.0.0)"]
 
 [package.source]
 type = "git"
 url = "https://github.com/prefeitura-rio/prefeitura-rio"
-reference = "64c1866acf770796c1750a014ec6c9531666b5ef"
-resolved_reference = "64c1866acf770796c1750a014ec6c9531666b5ef"
+reference = "13337dee36ae5595c7eb7de650bc82cf8f6b69d8"
+resolved_reference = "13337dee36ae5595c7eb7de650bc82cf8f6b69d8"
 
 [[package]]
 name = "proto-plus"
@@ -4203,4 +4219,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.11"
-content-hash = "c2bfcddd9102b17a035d0b880aaf84955137d957cec1c851af412db46bc5be37"
+content-hash = "7569a4865ad8b88071fdf59c0ccbf9febd5b12ee229ba7a254f1dc64fc68596c"

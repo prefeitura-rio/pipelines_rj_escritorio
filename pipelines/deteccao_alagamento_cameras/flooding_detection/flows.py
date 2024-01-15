@@ -3,7 +3,6 @@
 Flow definition for flooding detection using AI.
 """
 from prefect import Parameter, case
-from prefect.executors import LocalDaskExecutor
 from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
 from prefect.utilities.edges import unmapped
@@ -24,6 +23,7 @@ from pipelines.deteccao_alagamento_cameras.flooding_detection.tasks import (
     pick_cameras,
     task_get_redis_client,
     update_flooding_api_data,
+    upload_image_to_gcs,
     upload_to_native_table,
 )
 
@@ -74,6 +74,16 @@ with Flow(
         "redis_key_flooding_detection_last_update",
         default="flooding_detection_last_update",
     )
+    resize_width = Parameter("resize_width", default=640)
+    resize_height = Parameter("resize_height", default=480)
+    image_upload_bucket = Parameter(
+        "image_upload_bucket",
+        default="datario-public",
+    )
+    image_upload_blob_prefix = Parameter(
+        "image_upload_blob_prefix",
+        default="flooding_detection/latest_snapshots",
+    )
     dataset_id = Parameter("dataset_id", default="ai_vision_detection")
     table_id = Parameter("table_id", default="cameras_predicoes")
 
@@ -99,10 +109,18 @@ with Flow(
     api_key = get_api_key(secret_path=api_key_secret_path, secret_name="GEMINI-PRO-VISION-API-KEY")
     cameras_with_image = get_snapshot.map(
         camera=cameras,
+        resize_width=unmapped(resize_width),
+        resize_height=unmapped(resize_height),
+    )
+
+    cameras_with_image_url = upload_image_to_gcs.map(
+        camera_with_image=cameras_with_image,
+        bucket_name=unmapped(image_upload_bucket),
+        blob_base_path=unmapped(image_upload_blob_prefix),
     )
 
     cameras_with_image_and_classification = get_prediction.map(
-        camera_with_image=cameras_with_image,
+        camera_with_image=cameras_with_image_url,
         google_api_key=unmapped(api_key),
         google_api_model=unmapped(google_api_model),
     )
