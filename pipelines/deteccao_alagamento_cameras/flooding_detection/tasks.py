@@ -298,9 +298,11 @@ def get_snapshot(
             ret, frame = get_frame(cap=cap)
         except Exception:
             log(
-                f"Timeout to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"  # noqa
+                f"Timeout to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}\nTake {time.time() - start_time} seconds to end."  # noqa
             )
-            raise RuntimeError(f"Timeout! Take {time.time() - start_time} seconds to end.")
+            raise RuntimeError(
+                f"Timeout to get snapshot from URL {rtsp_url}.! Take {time.time() - start_time} seconds to end."
+            )
         if not ret:
             raise RuntimeError(f"Failed to get snapshot from URL {rtsp_url}.")
         cap.release()
