@@ -282,26 +282,16 @@ def get_snapshot(
                 "image_base64": "base64...",
             }
     """
+    camera_id = camera.get("id_camera")
+    object_name = camera.get("object")
+    rtsp_url = camera.get("url_camera")
 
+    camera_log = f"camera_id: {camera_id}\nobject: {object_name}\n"
     try:
-        camera_id = camera["id_camera"]
-        object = camera["object"]
-        rtsp_url = camera["url_camera"]
-        ret = False
-        try:
-            start_time = time.time()
-            cap, ret, frame = get_video_capture(rtsp_url=rtsp_url, timeout=snapshot_timeout)
-        except TimeoutError:
-            log(
-                f"Timeout to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}\nTake {round(time.time() - start_time,3)} seconds."  # noqa
-            )
-            raise RuntimeError(
-                f"Timeout to get snapshot from URL {rtsp_url}.!\nTake {round(time.time() - start_time,3)} seconds."  # noqa
-            )
+        start_time = time.time()
+        cap, ret, frame = get_video_capture(rtsp_url=rtsp_url, timeout=snapshot_timeout)
         if not ret:
-            raise RuntimeError(
-                f"Failed to get snapshot from URL {rtsp_url}.\nTake {round(time.time() - start_time,3)} seconds."  # noqa
-            )
+            raise RuntimeError("No ret returned.")
         cap.release()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(frame)
@@ -309,15 +299,25 @@ def get_snapshot(
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG")
         img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
         log(
-            f"Successfully got snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}\nTake {round(time.time() - start_time,3)} seconds."  # noqa
+            msg=f"Successfully got snapshot from URL {rtsp_url}.\n{camera_log}\nTake {round(time.time() - start_time, 3)} seconds."  # noqa
         )
         camera["image_base64"] = img_b64
-    except Exception:
+    except TimeoutError as e:
         log(
-            f"Failed to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}\nTake {round(time.time() - start_time,3)} seconds."  # noqa
+            msg=f"Timeout to get snapshot from URL {rtsp_url}.\n{camera_log}\nTake {round(time.time() - start_time, 3)} seconds.\n\nError:\n\n{e}",  # noqa
+            level="warning",
         )
         camera["image_base64"] = None
+
+    except Exception as e:
+        log(
+            f"Failed to get snapshot from URL {rtsp_url}.\n{camera_log}\nTake {round(time.time() - start_time, 3)} seconds.\n\nError:\n\n{e}",  # noqa
+            level="warning",
+        )
+        camera["image_base64"] = None
+
     return camera
 
 
