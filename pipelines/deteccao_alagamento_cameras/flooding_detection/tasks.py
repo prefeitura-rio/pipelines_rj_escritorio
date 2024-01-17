@@ -25,6 +25,7 @@ from prefeitura_rio.pipelines_utils.io import to_partitions
 from prefeitura_rio.pipelines_utils.logging import log
 from prefeitura_rio.pipelines_utils.pandas import parse_date_columns
 from prefeitura_rio.pipelines_utils.redis_pal import get_redis_client
+from prefeitura_rio.pipelines_utils.time import timeout
 from redis_pal import RedisPal
 from shapely.geometry import Point
 
@@ -214,7 +215,8 @@ def get_prediction(
     )
 
     responses.resolve()
-
+    if type(responses) == tuple:
+        responses = responses[0]
     json_string = responses.text.replace("```json\n", "").replace("\n```", "")
     label = json.loads(json_string)["label"]
 
@@ -234,6 +236,12 @@ def get_prediction(
     ]
 
     return camera_with_image
+
+
+@timeout(seconds=3 * 60)
+def get_frame(cap: cv2.VideoCapture):
+    ret, frame = cap.read()
+    return ret, frame
 
 
 @task(
@@ -277,13 +285,22 @@ def get_snapshot(
                 "image_base64": "base64...",
             }
     """
+    import time
+
     try:
         camera_id = camera["id_camera"]
         object = camera["object"]
         rtsp_url = camera["url_camera"]
 
         cap = cv2.VideoCapture(rtsp_url)
-        ret, frame = cap.read()
+        try:
+            start_time = time.time()
+            ret, frame = get_frame(cap=cap)
+        except Exception:
+            log(
+                f"Timeout to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"  # noqa
+            )
+            raise RuntimeError(f"Timeout! Take {time.time() - start_time} seconds to end.")
         if not ret:
             raise RuntimeError(f"Failed to get snapshot from URL {rtsp_url}.")
         cap.release()
@@ -294,7 +311,7 @@ def get_snapshot(
         img.save(buffer, format="JPEG")
         img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
         log(
-            f"Successfully got snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"  # noqa
+            f"After {time.time() - start_time} seconds\nSuccessfully got snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"  # noqa
         )
         camera["image_base64"] = img_b64
     except Exception:
