@@ -502,9 +502,13 @@ def update_flooding_api_data(
     api_data = []
     for camera_with_image_and_classification in cameras_with_image_and_classification:
         ai_classification_api_list = []
-        for ai_classification in camera_with_image_and_classification["ai_classification"]:
+        for ai_classification in camera_with_image_and_classification.get("ai_classification", []):
             # Get AI classifications
-            current_prediction = ai_classification[0]["label"]
+            if ai_classification == []:
+                current_prediction = None
+            else:
+                current_prediction = ai_classification.get("label", None)
+
             if current_prediction is None:
                 ai_classification_api_list.append(
                     {
