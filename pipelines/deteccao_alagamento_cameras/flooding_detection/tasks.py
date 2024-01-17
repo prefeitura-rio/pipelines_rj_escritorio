@@ -239,7 +239,7 @@ def get_prediction(
     return camera_with_image
 
 
-@timeout(seconds=3 * 60)
+@timeout(seconds=180)
 def get_frame(rtsp_url: str):
     cap = cv2.VideoCapture(rtsp_url)
     ret, frame = cap.read()
