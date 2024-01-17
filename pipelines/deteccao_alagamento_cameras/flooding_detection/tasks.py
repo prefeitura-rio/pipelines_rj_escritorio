@@ -248,6 +248,7 @@ def get_snapshot(
     camera: Dict[str, Union[str, float]],
     resize_width: int = 640,
     resize_height: int = 480,
+    snapshot_timeout: int = 300,
 ) -> Dict[str, Union[str, float]]:
     """
     Gets a snapshot from a camera.
@@ -289,7 +290,7 @@ def get_snapshot(
         ret = False
         try:
             start_time = time.time()
-            cap, ret, frame = get_video_capture(rtsp_url=rtsp_url)
+            cap, ret, frame = get_video_capture(rtsp_url=rtsp_url, timeout=snapshot_timeout)
         except TimeoutError:
             log(
                 f"Timeout to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}\nTake {round(time.time() - start_time,3)} seconds."  # noqa

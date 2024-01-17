@@ -76,6 +76,8 @@ with Flow(
     )
     resize_width = Parameter("resize_width", default=640)
     resize_height = Parameter("resize_height", default=480)
+    snapshot_timeout = Parameter("snapshot_timeout", default=300)
+
     image_upload_bucket = Parameter(
         "image_upload_bucket",
         default="datario-public",
@@ -111,6 +113,7 @@ with Flow(
         camera=cameras,
         resize_width=unmapped(resize_width),
         resize_height=unmapped(resize_height),
+        snapshot_timeout=unmapped(snapshot_timeout),
     )
 
     cameras_with_image_url = upload_image_to_gcs.map(
