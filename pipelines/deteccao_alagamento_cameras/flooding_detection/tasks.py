@@ -501,44 +501,54 @@ def update_flooding_api_data(
     last_update = pendulum.now(tz="America/Sao_Paulo")
     api_data = []
     for camera_with_image_and_classification in cameras_with_image_and_classification:
-        # Get AI classifications
-        ai_classification = []
-        current_prediction = camera_with_image_and_classification["ai_classification"][0]["label"]
-        if current_prediction is None:
-            api_data.append(
-                {
-                    "datetime": last_update.to_datetime_string(),
-                    "id_camera": camera_with_image_and_classification["id_camera"],
-                    "url_camera": camera_with_image_and_classification["url_camera"],
-                    "latitude": camera_with_image_and_classification["latitude"],
-                    "longitude": camera_with_image_and_classification["longitude"],
-                    "image_base64": camera_with_image_and_classification["image_base64"],
-                    "ai_classification": ai_classification,
-                }
-            )
-            continue
-        predictions_buffer_camera_key = (
-            f"{predictions_buffer_key}_{camera_with_image_and_classification['id_camera']}"  # noqa
-        )
-        predictions_buffer = redis_add_to_prediction_buffer(
-            predictions_buffer_camera_key, current_prediction, redis_client=redis_client
-        )
-        # Get most common prediction
-        most_common_prediction = max(set(predictions_buffer), key=predictions_buffer.count)
-        # Add classifications
-        ai_classification.append(
-            {
-                "object": camera_with_image_and_classification["object"],
-                "label": most_common_prediction,
-                "confidence": 0.7,
-                "prompt": camera_with_image_and_classification["prompt"],
-                "max_output_token": camera_with_image_and_classification["max_output_token"],
-                "temperature": camera_with_image_and_classification["temperature"],
-                "top_k": camera_with_image_and_classification["top_k"],
-                "top_p": camera_with_image_and_classification["top_p"],
-            }
-        )
+        ai_classification_api_list = []
+        for ai_classification in camera_with_image_and_classification.get("ai_classification", []):
+            # Get AI classifications
+            if ai_classification == []:
+                current_prediction = None
+            else:
+                current_prediction = ai_classification.get("label", None)
 
+            if current_prediction is None:
+                ai_classification_api_list.append(
+                    {
+                        "object": camera_with_image_and_classification["object"],
+                        "label": None,
+                        "confidence": None,
+                        "prompt": camera_with_image_and_classification["prompt"],
+                        "max_output_token": camera_with_image_and_classification[
+                            "max_output_token"
+                        ],
+                        "temperature": camera_with_image_and_classification["temperature"],
+                        "top_k": camera_with_image_and_classification["top_k"],
+                        "top_p": camera_with_image_and_classification["top_p"],
+                    }
+                )
+            else:
+                # TODO: add object the key name. Currently working for just one object
+                predictions_buffer_camera_key = f"{predictions_buffer_key}_{camera_with_image_and_classification['id_camera']}"  # noqa
+                predictions_buffer = redis_add_to_prediction_buffer(
+                    predictions_buffer_camera_key, current_prediction, redis_client=redis_client
+                )
+                # Get most common prediction
+                most_common_prediction = max(set(predictions_buffer), key=predictions_buffer.count)
+
+                ai_classification_api_list.append(
+                    {
+                        "object": camera_with_image_and_classification["object"],
+                        "label": most_common_prediction,
+                        "confidence": 0.7,
+                        "prompt": camera_with_image_and_classification["prompt"],
+                        "max_output_token": camera_with_image_and_classification[
+                            "max_output_token"
+                        ],
+                        "temperature": camera_with_image_and_classification["temperature"],
+                        "top_k": camera_with_image_and_classification["top_k"],
+                        "top_p": camera_with_image_and_classification["top_p"],
+                    }
+                )
+
+        # Add classifications
         api_data_dict = {
             "datetime": last_update.to_datetime_string(),
             "id_camera": camera_with_image_and_classification["id_camera"],
@@ -547,7 +557,7 @@ def update_flooding_api_data(
             "longitude": camera_with_image_and_classification["longitude"],
             "image_base64": camera_with_image_and_classification["image_base64"],
             "image_url": camera_with_image_and_classification["image_url"],
-            "ai_classification": ai_classification,
+            "ai_classification": ai_classification_api_list,
         }
         api_data.append(api_data_dict)
 
