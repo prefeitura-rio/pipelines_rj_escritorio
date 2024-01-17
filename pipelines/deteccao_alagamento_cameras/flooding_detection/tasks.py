@@ -6,6 +6,7 @@ import random
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
+import time
 from typing import Dict, List, Tuple, Union
 from uuid import uuid4
 
@@ -25,7 +26,7 @@ from prefeitura_rio.pipelines_utils.io import to_partitions
 from prefeitura_rio.pipelines_utils.logging import log
 from prefeitura_rio.pipelines_utils.pandas import parse_date_columns
 from prefeitura_rio.pipelines_utils.redis_pal import get_redis_client
-from prefeitura_rio.pipelines_utils.time import timeout
+from prefeitura_rio.pipelines_utils.time import timeout, TimeoutError
 from redis_pal import RedisPal
 from shapely.geometry import Point
 
@@ -239,9 +240,10 @@ def get_prediction(
 
 
 @timeout(seconds=3 * 60)
-def get_frame(cap: cv2.VideoCapture):
+def get_frame(rtsp_url: str):
+    cap = cv2.VideoCapture(rtsp_url)
     ret, frame = cap.read()
-    return ret, frame
+    return cap, ret, frame
 
 
 @task(
@@ -285,26 +287,26 @@ def get_snapshot(
                 "image_base64": "base64...",
             }
     """
-    import time
 
     try:
         camera_id = camera["id_camera"]
         object = camera["object"]
         rtsp_url = camera["url_camera"]
-
-        cap = cv2.VideoCapture(rtsp_url)
+        ret = False
         try:
             start_time = time.time()
-            ret, frame = get_frame(cap=cap)
-        except Exception:
+            cap, ret, frame = get_frame(rtsp_url=rtsp_url)
+        except TimeoutError:
             log(
-                f"Timeout to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}\nTake {time.time() - start_time} seconds to end."  # noqa
+                f"Timeout to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}\nTake {round(time.time() - start_time,3)} seconds."  # noqa
             )
             raise RuntimeError(
-                f"Timeout to get snapshot from URL {rtsp_url}.! Take {time.time() - start_time} seconds to end."
+                f"Timeout to get snapshot from URL {rtsp_url}.!\nTake {round(time.time() - start_time,3)} seconds."  # noqa
             )
         if not ret:
-            raise RuntimeError(f"Failed to get snapshot from URL {rtsp_url}.")
+            raise RuntimeError(
+                f"Failed to get snapshot from URL {rtsp_url}.\nTake {round(time.time() - start_time,3)} seconds."
+            )
         cap.release()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(frame)
@@ -313,12 +315,12 @@ def get_snapshot(
         img.save(buffer, format="JPEG")
         img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
         log(
-            f"After {time.time() - start_time} seconds\nSuccessfully got snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"  # noqa
+            f"Successfully got snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}\nTake {round(time.time() - start_time,3)} seconds."  # noqa
         )
         camera["image_base64"] = img_b64
     except Exception:
         log(
-            f"Failed to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"
+            f"Failed to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}\nTake {round(time.time() - start_time,3)} seconds."  # noqa
         )
         camera["image_base64"] = None
     return camera
