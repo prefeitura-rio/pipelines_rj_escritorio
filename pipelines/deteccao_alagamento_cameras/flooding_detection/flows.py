@@ -54,7 +54,7 @@ with Flow(
     )
     use_rain_api_data = Parameter(
         "use_rain_api_data",
-        default=True,
+        default=False,
     )
     rain_api_data_url = Parameter(
         "rain_api_url",

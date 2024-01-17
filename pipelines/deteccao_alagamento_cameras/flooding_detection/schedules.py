@@ -33,6 +33,7 @@ update_flooding_data_schedule = Schedule(
                 "redis_key_flooding_detection_data": "flooding_detection_data",
                 "redis_key_flooding_detection_last_update": "flooding_detection_last_update",
                 "redis_key_predictions_buffer": "flooding_detection_predictions_buffer",
+                "snapshot_timeout": 300,
             },
         ),
     ]
