@@ -2,4 +2,4 @@
 """
 Prefect flows for Escritorio's project
 """
-from pipelines.dump_url.dump_url_turismo.flows import *
+from pipelines.dump_alertas.waze.flows import *
