@@ -157,7 +157,7 @@ gsheets_urls = {
 }
 
 
-gsheets_clocks = generate_dump_url_schedules(
+gsheets_clocks = generate_dump_url_schedules.run(
     interval=timedelta(days=1),
     runs_interval_minutes=1,
     start_date=datetime(
