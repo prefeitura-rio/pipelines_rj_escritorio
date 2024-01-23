@@ -22,9 +22,6 @@ from prefeitura_rio.pipelines_utils.custom import Flow
 
 with Flow(
     name="EMD: escritorio - Alertas Waze",
-    code_owners=[
-        "diego",
-    ],
 ) as flow:
     dataset_id = "transporte_rodoviario_waze"
     table_id = "alertas"
