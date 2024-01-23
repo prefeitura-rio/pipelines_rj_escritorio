@@ -9,7 +9,7 @@ from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
 
 from pipelines.constants import constants
-from pipelines.dump_alertas.waze.tasks import (
+from pipelines.waze.dump_alertas.tasks import (
     load_geometries,
     fecth_waze,
     normalize_data,
@@ -17,7 +17,7 @@ from pipelines.dump_alertas.waze.tasks import (
     get_now_time,
     rename_current_flow_run_now_time
 )
-from pipelines.dump_alertas.waze.schedules import every_five_minutes
+from pipelines.waze.dump_alertas.schedules import every_five_minutes
 from prefeitura_rio.pipelines_utils.custom import Flow
 
 with Flow(
