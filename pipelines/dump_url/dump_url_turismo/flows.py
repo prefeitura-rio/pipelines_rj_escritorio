@@ -15,10 +15,12 @@ from pipelines.dump_url.dump_url_turismo.schedules import (
 )
 from prefeitura_rio.pipelines_templates.dump_url.flows import dump_url_flow
 from prefeitura_rio.pipelines_utils.prefect import set_default_parameters
+from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
 
 setur_gsheets_flow = deepcopy(dump_url_flow)
 setur_gsheets_flow.name = "SETUR: Google Sheets - Ingerir tabelas de URL"
 setur_gsheets_flow.storage = GCS(constants.GCS_FLOWS_BUCKET.value)
+setur_gsheets_flow.state_handlers = [handler_inject_bd_credentials]
 setur_gsheets_flow.run_config = KubernetesRun(
     image=constants.DOCKER_IMAGE.value,
     labels=[

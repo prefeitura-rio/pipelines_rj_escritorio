@@ -19,9 +19,12 @@ from pipelines.waze.dump_alertas.tasks import (
 )
 from pipelines.waze.dump_alertas.schedules import every_five_minutes
 from prefeitura_rio.pipelines_utils.custom import Flow
+from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
+
 
 with Flow(
     name="EMD: escritorio - Alertas Waze",
+    state_handlers=[handler_inject_bd_credentials],
 ) as flow:
     dataset_id = "transporte_rodoviario_waze"
     table_id = "alertas"
