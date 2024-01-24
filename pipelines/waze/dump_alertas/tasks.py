@@ -21,8 +21,8 @@ from prefeitura_rio.core import settings
 
 
 @task(
-    max_retries=settings.TASK_MAX_RETRIES,
-    retry_delay=timedelta(seconds=settings.TASK_RETRY_DELAY),
+    max_retries=settings.TASK_MAX_RETRIES_DEFAULT,
+    retry_delay=timedelta(seconds=settings.TASK_RETRY_DELAY_DEFAULT),
 )
 def load_geometries(wait=None) -> pd.DataFrame:
     """
@@ -125,8 +125,8 @@ def load_geometries(wait=None) -> pd.DataFrame:
 
 
 @task(
-    max_retries=settings.TASK_MAX_RETRIES,
-    retry_delay=timedelta(seconds=settings.TASK_RETRY_DELAY),
+    max_retries=settings.TASK_MAX_RETRIES_DEFAULT,
+    retry_delay=timedelta(seconds=settings.TASK_RETRY_DELAY_DEFAULT),
 )
 def fecth_waze(areas: pd.DataFrame, wait=None) -> list:
     """
@@ -149,8 +149,8 @@ def fecth_waze(areas: pd.DataFrame, wait=None) -> list:
 
 
 @task(
-    max_retries=settings.TASK_MAX_RETRIES,
-    retry_delay=timedelta(seconds=settings.TASK_RETRY_DELAY),
+    max_retries=settings.TASK_MAX_RETRIES_DEFAULT,
+    retry_delay=timedelta(seconds=settings.TASK_RETRY_DELAY_DEFAULT),
 )
 def normalize_data(responses: list, wait=None) -> pd.DataFrame:
     """
@@ -191,8 +191,8 @@ def normalize_data(responses: list, wait=None) -> pd.DataFrame:
 
 
 @task(
-    max_retries=settings.TASK_MAX_RETRIES,
-    retry_delay=timedelta(seconds=settings.TASK_RETRY_DELAY),
+    max_retries=settings.TASK_MAX_RETRIES_DEFAULT,
+    retry_delay=timedelta(seconds=settings.TASK_RETRY_DELAY_DEFAULT),
 )
 def upload_to_native_table(
     dataset_id: str, table_id: str, dataframe: pd.DataFrame, wait=None
