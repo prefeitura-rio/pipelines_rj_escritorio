@@ -2,19 +2,63 @@
 """
 Data in: https://drive.google.com/drive/folders/1C-W_MMFAAJy5Lq_rHDzXUesEUyzke5gw
 """
+import queue
+import threading
+import time
 from io import StringIO
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
+import cv2
 import geopandas as gpd
 import h3
 import numpy as np
 import pandas as pd
 import requests
+from PIL import Image, ImageDraw, ImageFont
 from prefeitura_rio.pipelines_utils.logging import log
 from prefeitura_rio.pipelines_utils.pandas import remove_columns_accents
+from prefeitura_rio.pipelines_utils.time import TimeoutError
 from redis_pal import RedisPal
 from shapely.geometry import Point, Polygon
+
+
+class VideoCaptureDaemon(threading.Thread):
+    def __init__(self, rtsp_url, result_queue):
+        super().__init__()
+        self.daemon = True
+        self.rtsp_url = rtsp_url
+        self.result_queue = result_queue
+
+    def run(self):
+        self.result_queue.put(cv2.VideoCapture(self.rtsp_url))
+
+
+def get_video_capture(rtsp_url, timeout=5):
+    res_queue = queue.Queue()
+    VideoCaptureDaemon(rtsp_url, res_queue).start()
+    start_time = time.time()
+    try:
+        cap = res_queue.get(block=True, timeout=timeout)
+        ret, frame = cap.read()
+        return cap, ret, frame
+    except queue.Empty:
+        raise TimeoutError("Timeout occurred after {:.3f}s".format(time.time() - start_time))
+
+
+def add_text_to_image(image: Image = None, text: str = None):
+    # width, height = image.size
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.load_default(size=20)
+
+    text_color = (255, 255, 255)
+    margin = 10
+    x = 0 + margin
+    y = 0 + margin
+    text_position = (x, y)
+
+    draw.text(text_position, text, font=font, fill=text_color)
+    return image
 
 
 def download_file(url: str, output_path: Union[str, Path]) -> bool:
