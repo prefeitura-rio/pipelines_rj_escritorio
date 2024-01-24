@@ -3,9 +3,12 @@ import base64
 import io
 import json
 import random
+import time
+from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
+from uuid import uuid4
 
 import basedosdados as bd
 import cv2
@@ -17,16 +20,19 @@ import requests
 from google.cloud import bigquery
 from PIL import Image
 from prefect import task
+from prefeitura_rio.pipelines_utils.gcs import upload_file_to_bucket
 from prefeitura_rio.pipelines_utils.infisical import get_secret
 from prefeitura_rio.pipelines_utils.io import to_partitions
 from prefeitura_rio.pipelines_utils.logging import log
 from prefeitura_rio.pipelines_utils.pandas import parse_date_columns
 from prefeitura_rio.pipelines_utils.redis_pal import get_redis_client
+from prefeitura_rio.pipelines_utils.time import TimeoutError
 from redis_pal import RedisPal
 from shapely.geometry import Point
 
 from pipelines.deteccao_alagamento_cameras.flooding_detection.utils import (
     download_file,
+    get_video_capture,
     redis_add_to_prediction_buffer,
     redis_get_prediction_buffer,
 )
@@ -211,7 +217,8 @@ def get_prediction(
     )
 
     responses.resolve()
-
+    if type(responses) == tuple:
+        responses = responses[0]
     json_string = responses.text.replace("```json\n", "").replace("\n```", "")
     label = json.loads(json_string)["label"]
 
@@ -239,6 +246,9 @@ def get_prediction(
 )
 def get_snapshot(
     camera: Dict[str, Union[str, float]],
+    resize_width: int = 640,
+    resize_height: int = 480,
+    snapshot_timeout: int = 300,
 ) -> Dict[str, Union[str, float]]:
     """
     Gets a snapshot from a camera.
@@ -272,30 +282,42 @@ def get_snapshot(
                 "image_base64": "base64...",
             }
     """
-    try:
-        camera_id = camera["id_camera"]
-        object = camera["object"]
-        rtsp_url = camera["url_camera"]
+    camera_id = camera.get("id_camera")
+    object_name = camera.get("object")
+    rtsp_url = camera.get("url_camera")
 
-        cap = cv2.VideoCapture(rtsp_url)
-        ret, frame = cap.read()
+    camera_log = f"camera_id: {camera_id}\nobject: {object_name}\n"
+    try:
+        start_time = time.time()
+        cap, ret, frame = get_video_capture(rtsp_url=rtsp_url, timeout=snapshot_timeout)
         if not ret:
-            raise RuntimeError(f"Failed to get snapshot from URL {rtsp_url}.")
+            raise RuntimeError("No ret returned.")
         cap.release()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(frame)
+        img.thumbnail((resize_width, resize_height))
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG")
         img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
         log(
-            f"Successfully got snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"  # noqa
+            msg=f"Successfully got snapshot from URL {rtsp_url}.\n{camera_log}\nTake {round(time.time() - start_time, 3)} seconds."  # noqa
         )
         camera["image_base64"] = img_b64
-    except Exception:
+    except TimeoutError as e:
         log(
-            f"Failed to get snapshot from URL {rtsp_url}.\ncamera_id: {camera_id}\nobject: {object}"
+            msg=f"Timeout to get snapshot from URL {rtsp_url}.\n{camera_log}\nTake {round(time.time() - start_time, 3)} seconds.\n\nError:\n\n{e}",  # noqa
+            level="warning",
         )
         camera["image_base64"] = None
+
+    except Exception as e:
+        log(
+            f"Failed to get snapshot from URL {rtsp_url}.\n{camera_log}\nTake {round(time.time() - start_time, 3)} seconds.\n\nError:\n\n{e}",  # noqa
+            level="warning",
+        )
+        camera["image_base64"] = None
+
     return camera
 
 
@@ -308,6 +330,7 @@ def pick_cameras(
     predictions_buffer_key: str,
     redis_client: RedisPal,
     number_mock_rain_cameras: int = 0,
+    use_rain_api_data: bool = True,
 ) -> List[Dict[str, Union[str, float]]]:
     """
     Picks cameras based on the raining hexagons and last update.
@@ -353,17 +376,21 @@ def pick_cameras(
     log("Successfully downloaded cameras data.")
     log(f"Cameras shape: {df_cameras.shape}")
 
-    # Get rain data
-    rain_data = requests.get(rain_api_data_url).json()
-    df_rain = pd.DataFrame(rain_data)
-    df_rain["last_update"] = last_update
-    log("Successfully downloaded rain data.")
-    log(f"Rain data shape: {df_rain.shape}")
+    if use_rain_api_data:
+        # Get rain data
+        rain_data = requests.get(rain_api_data_url).json()
+        df_rain = pd.DataFrame(rain_data)
+        df_rain["last_update"] = last_update
+        log("Successfully downloaded rain data.")
+        log(f"Rain data shape: {df_rain.shape}")
 
-    # Join the dataframes
-    df_cameras_h3 = pd.merge(df_cameras, df_rain, how="left", on="id_h3")
-    log("Successfully joined the dataframes.")
-    log(f"Cameras H3 shape: {df_cameras_h3.shape}")
+        # Join the dataframes
+        df_cameras_h3 = pd.merge(df_cameras, df_rain, how="left", on="id_h3")
+        log("Successfully joined the dataframes.")
+        log(f"Cameras H3 shape: {df_cameras_h3.shape}")
+    else:
+        df_cameras_h3 = df_cameras.copy()
+        df_cameras_h3["status"] = None
 
     # Modify status based on buffers
     for _, row in df_cameras_h3.iterrows():
@@ -415,7 +442,7 @@ def pick_cameras(
                 "url_camera": row["rtsp"],
                 "latitude": row["geometry"].y,
                 "longitude": row["geometry"].x,
-                "attempt_classification": (row["status"] not in ["sem chuva", "chuva fraca"]),
+                "attempt_classification": True,  # noqa (row["status"] not in ["sem chuva", "chuva fraca"]),
                 "object": row["identificador"],
                 "prompt": row["prompt"],
                 "max_output_token": row["max_output_token"],
@@ -474,54 +501,76 @@ def update_flooding_api_data(
     last_update = pendulum.now(tz="America/Sao_Paulo")
     api_data = []
     for camera_with_image_and_classification in cameras_with_image_and_classification:
-        # Get AI classifications
-        ai_classification = []
-        current_prediction = camera_with_image_and_classification["ai_classification"][0]["label"]
-        if current_prediction is None:
-            api_data.append(
-                {
-                    "datetime": last_update.to_datetime_string(),
-                    "id_camera": camera_with_image_and_classification["id_camera"],
-                    "url_camera": camera_with_image_and_classification["url_camera"],
-                    "latitude": camera_with_image_and_classification["latitude"],
-                    "longitude": camera_with_image_and_classification["longitude"],
-                    "image_base64": camera_with_image_and_classification["image_base64"],
-                    "ai_classification": ai_classification,
-                }
-            )
-            continue
-        predictions_buffer_camera_key = (
-            f"{predictions_buffer_key}_{camera_with_image_and_classification['id_camera']}"  # noqa
-        )
-        predictions_buffer = redis_add_to_prediction_buffer(
-            predictions_buffer_camera_key, current_prediction, redis_client=redis_client
-        )
-        # Get most common prediction
-        most_common_prediction = max(set(predictions_buffer), key=predictions_buffer.count)
+        ai_classification_api_list = []
+        for ai_classification in camera_with_image_and_classification.get("ai_classification", []):
+            # Get AI classifications
+            if ai_classification == []:
+                current_prediction = None
+            else:
+                current_prediction = ai_classification.get("label", None)
+
+            if current_prediction is None:
+                ai_classification_api_list.append(
+                    {
+                        "object": camera_with_image_and_classification["object"],
+                        "label": None,
+                        "confidence": None,
+                        "prompt": camera_with_image_and_classification["prompt"],
+                        "max_output_token": camera_with_image_and_classification[
+                            "max_output_token"
+                        ],
+                        "temperature": camera_with_image_and_classification["temperature"],
+                        "top_k": camera_with_image_and_classification["top_k"],
+                        "top_p": camera_with_image_and_classification["top_p"],
+                    }
+                )
+            else:
+                # TODO: add object the key name. Currently working for just one object
+                predictions_buffer_camera_key = f"{predictions_buffer_key}_{camera_with_image_and_classification['id_camera']}"  # noqa
+                predictions_buffer = redis_add_to_prediction_buffer(
+                    predictions_buffer_camera_key, current_prediction, redis_client=redis_client
+                )
+                # Get most common prediction
+                most_common_prediction = max(set(predictions_buffer), key=predictions_buffer.count)
+
+                ai_classification_api_list.append(
+                    {
+                        "object": camera_with_image_and_classification["object"],
+                        "label": most_common_prediction,
+                        "confidence": 0.7,
+                        "prompt": camera_with_image_and_classification["prompt"],
+                        "max_output_token": camera_with_image_and_classification[
+                            "max_output_token"
+                        ],
+                        "temperature": camera_with_image_and_classification["temperature"],
+                        "top_k": camera_with_image_and_classification["top_k"],
+                        "top_p": camera_with_image_and_classification["top_p"],
+                    }
+                )
+
         # Add classifications
-        ai_classification.append(
-            {
-                "object": camera_with_image_and_classification["object"],
-                "label": most_common_prediction,
-                "confidence": 0.7,
-                "prompt": camera_with_image_and_classification["prompt"],
-                "max_output_token": camera_with_image_and_classification["max_output_token"],
-                "temperature": camera_with_image_and_classification["temperature"],
-                "top_k": camera_with_image_and_classification["top_k"],
-                "top_p": camera_with_image_and_classification["top_p"],
-            }
-        )
-        api_data.append(
-            {
-                "datetime": last_update.to_datetime_string(),
-                "id_camera": camera_with_image_and_classification["id_camera"],
-                "url_camera": camera_with_image_and_classification["url_camera"],
-                "latitude": camera_with_image_and_classification["latitude"],
-                "longitude": camera_with_image_and_classification["longitude"],
-                "image_base64": camera_with_image_and_classification["image_base64"],
-                "ai_classification": ai_classification,
-            }
-        )
+        api_data_dict = {
+            "datetime": last_update.to_datetime_string(),
+            "id_camera": camera_with_image_and_classification["id_camera"],
+            "url_camera": camera_with_image_and_classification["url_camera"],
+            "latitude": camera_with_image_and_classification["latitude"],
+            "longitude": camera_with_image_and_classification["longitude"],
+            "image_base64": camera_with_image_and_classification["image_base64"],
+            "image_url": camera_with_image_and_classification["image_url"],
+            "ai_classification": ai_classification_api_list,
+        }
+        api_data.append(api_data_dict)
+
+    bq_data = deepcopy(api_data)
+    # clean api_data
+    for d in api_data:
+        d.pop("image_base64", None)
+        for c in d["ai_classification"]:
+            c.pop("prompt", None)
+            c.pop("max_output_token", None)
+            c.pop("temperature", None)
+            c.pop("top_k", None)
+            c.pop("top_p", None)
 
     # Update API data
     redis_client.set(data_key, api_data)
@@ -530,7 +579,8 @@ def update_flooding_api_data(
 
     has_api_data = not len(api_data) == 0
     log(f"has_api_data: {has_api_data}")
-    return api_data, has_api_data
+
+    return bq_data, has_api_data
 
 
 @task(nout=2)
@@ -632,3 +682,77 @@ def upload_to_native_table(
     )
 
     job.result()
+
+
+@task
+def upload_image_to_gcs(
+    camera_with_image: Dict[str, Union[str, float]], bucket_name: str, blob_base_path: str
+) -> Dict[str, Union[str, float]]:
+    """
+    Uploads an image to GCS.
+
+    Args:
+        camera_with_image: The camera with image in the following format:
+            {
+                "id_camera": "1",
+                "url_camera": "rtsp://...",
+                "latitude": -22.912,
+                "longitude": -43.230,
+                "image_base64": "base64...",
+                "attempt_classification": True,
+                "object": "alagamento",
+                "prompt": "You are ....",
+                "max_output_token": 300,
+                "temperature": 0.4,
+                "top_k": 1,
+                "top_p": 32,
+            }
+        bucket_name: The GCS bucket name.
+        blob_base_path: The GCS blob base path.
+
+    Returns:
+        The camera with image in the following format:
+            {
+                "id_camera": "1",
+                "url_camera": "rtsp://...",
+                "latitude": -22.912,
+                "longitude": -43.230,
+                "image_base64": "base64...",
+                "attempt_classification": True,
+                "object": "alagamento",
+                "prompt": "You are ....",
+                "max_output_token": 300,
+                "temperature": 0.4,
+                "top_k": 1,
+                "top_p": 32,
+                "image_url": "https://storage.googleapis.com/...",
+            }
+    """
+    if not camera_with_image["image_base64"]:
+        log("Skipping upload for `image_base64` is None.")
+        camera_with_image["image_url"] = None
+        return camera_with_image
+    try:
+        # Remove trailing slash
+        blob_base_path = blob_base_path.rstrip("/")
+        # Save image to temp file
+        tmp_fname = f"/tmp/{uuid4()}.png"
+        img = Image.open(io.BytesIO(base64.b64decode(camera_with_image["image_base64"])))
+        with open(tmp_fname, "wb") as f:
+            img.save(f, format="PNG")
+        # Set blob path
+        camera_id = camera_with_image["id_camera"]
+        blob_path = f"{blob_base_path}/{camera_id}.png"
+        log(f"Uploading image to GCS: {blob_path}")
+        blob = upload_file_to_bucket(
+            bucket_name=bucket_name,
+            file_path=tmp_fname,
+            destination_blob_name=blob_path,
+        )
+        image_url = blob.public_url
+        camera_with_image["image_url"] = image_url
+        log(f"Successfully uploaded image to GCS: {blob_path}")
+    except Exception:
+        log(f"Failed to upload image to GCS: {blob_path}")
+        camera_with_image["image_url"] = None
+    return camera_with_image
