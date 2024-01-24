@@ -164,7 +164,7 @@ gsheets_clocks = generate_dump_url_schedules.run(
         2021, 12, 21, 16, 20, tzinfo=pytz.timezone("America/Sao_Paulo")
     ),
     labels=[
-        constants.RJ_ESCRITORIO_DEV_AGENT_LABEL.value,
+        constants.RJ_ESCRITORIO_AGENT_LABEL.value,
     ],
     table_parameters=gsheets_urls,
     dataset_id="rj_setur_turismo",

@@ -22,7 +22,7 @@ seeketing_gsheets_flow.storage = GCS(constants.GCS_FLOWS_BUCKET.value)
 seeketing_gsheets_flow.run_config = KubernetesRun(
     image=constants.DOCKER_IMAGE.value,
     labels=[
-        constants.RJ_ESCRITORIO_DEV_AGENT_LABEL.value,
+        constants.RJ_ESCRITORIO_AGENT_LABEL.value,
     ],
 )
 
