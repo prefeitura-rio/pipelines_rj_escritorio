@@ -28,7 +28,9 @@ seeketing_gsheets_flow.run_config = KubernetesRun(
     ],
 )
 
-setur_gsheets_default_parameters = {}
+setur_gsheets_default_parameters = {
+    "dataset_id": "rj_setur_turismo",
+}
 seeketing_gsheets_flow = set_default_parameters(
     seeketing_gsheets_flow, default_parameters=setur_gsheets_default_parameters
 )
