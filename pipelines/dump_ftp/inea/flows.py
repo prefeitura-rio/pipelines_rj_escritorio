@@ -31,7 +31,7 @@ from prefeitura_rio.pipelines_utils.custom import Flow
 
 
 with Flow(
-    "INEA: Captura FTP dados de radar (Guaratiba)", code_owners=["paty"]
+    "INEA: Captura FTP dados de radar (Guaratiba)",
 ) as inea_ftp_radar_flow:
     bucket_name = Parameter("bucket_name", default="rj-escritorio-dev", required=False)
     date = Parameter("date", default=None, required=False)
