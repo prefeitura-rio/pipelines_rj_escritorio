@@ -22,7 +22,8 @@ templates__run_dbt_model_emd__flow.storage = GCS(constants.GCS_FLOWS_BUCKET.valu
 templates__run_dbt_model_emd__flow.run_config = KubernetesRun(
     image=constants.DOCKER_IMAGE.value,
     labels=[
-        constants.RJ_ESCRITORIO_AGENT_LABEL.value,
+        #constants.RJ_ESCRITORIO_AGENT_LABEL.value,
+        constants.RJ_DATARIO_AGENT_LABEL.value,
     ],
 )
 

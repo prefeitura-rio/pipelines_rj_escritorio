@@ -17,6 +17,7 @@ class constants(Enum):
     # Agent labels
     ######################################
     RJ_ESCRITORIO_AGENT_LABEL = "escritoriodedados"
+    RJ_DATARIO_AGENT_LABEL = "datario"
     ######################################
     # Other constants
     ######################################
