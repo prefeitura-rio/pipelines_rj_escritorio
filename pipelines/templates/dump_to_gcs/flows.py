@@ -30,7 +30,7 @@ templates_run_dbt_model_emd_default_parameters = {
     "dataset_id": "dataset_id",
     "table_id": "table_id",
 }
-templates__run_dbt_model_smas__flow = set_default_parameters(
+templates__run_dbt_model_emd__flow = set_default_parameters(
     templates__run_dbt_model_emd__flow,
     default_parameters=templates_run_dbt_model_emd_default_parameters,
 )
