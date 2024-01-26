@@ -9,7 +9,7 @@ python = ">=3.10,<3.11"
 dbt-bigquery = "^1.6.1"
 google-cloud-storage = "^2.10.0"
 prefect = "1.4.1"
-prefeitura-rio = { git = "https://github.com/prefeitura-rio/prefeitura-rio", rev = "62503426e5002a43875e231d1a214cf8b8193aee", extras = [
+prefeitura-rio = { git = "https://github.com/prefeitura-rio/prefeitura-rio", rev = "deff3a12bb48b1bf364177872a1aff8e13d9b369", extras = [
 
     "pipelines",
     "pipelines-templates",
@@ -24,6 +24,7 @@ requests = "^2.31.0"
 pillow = "^10.1.0"
 shapely = "^2.0.2"
 h3 = "^3.7.6"
+hvac = "0.11.2"
 
 [tool.poetry.group.dev]
 optional = true
