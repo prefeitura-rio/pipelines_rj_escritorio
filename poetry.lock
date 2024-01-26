@@ -2247,16 +2247,6 @@ numpy = [
 ]
 
 [[package]]
-name = "optional"
-version = "0.0.1"
-description = "Optional Class for Python2/3"
-optional = false
-python-versions = "*"
-files = [
-    {file = "optional-0.0.1.tar.gz", hash = "sha256:2d8532e9f688b936be1ae13f81e57347631017831fc49f358e8f3de975d353eb"},
-]
-
-[[package]]
 name = "packaging"
 version = "23.2"
 description = "Core utilities for Python packages"
@@ -2708,7 +2698,6 @@ hvac = "0.11.2"
 infisical = {version = "^1.4.2", optional = true}
 jinja2 = {version = "^3.1.2", optional = true}
 loguru = "^0.7.0"
-optional = "0.0.1"
 pandas = {version = "^2.0.3", optional = true}
 prefect = {version = "1.4.1", optional = true}
 pymongo = {version = "^4.6.0", optional = true}
@@ -2729,8 +2718,8 @@ sgrc = ["aiohttp (>=3.8.5,<4.0.0)", "pendulum (>=2.1.2,<3.0.0)", "pytz (>=2023.3
 [package.source]
 type = "git"
 url = "https://github.com/prefeitura-rio/prefeitura-rio"
-reference = "90226dfda39771d114e937a74b7cea1c54fef773"
-resolved_reference = "90226dfda39771d114e937a74b7cea1c54fef773"
+reference = "b6349af97d502508785a8a27b1e478d9844ef03b"
+resolved_reference = "b6349af97d502508785a8a27b1e478d9844ef03b"
 
 [[package]]
 name = "proto-plus"
@@ -4270,4 +4259,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.11"
-content-hash = "f57f6b84a5c4aee827e0df601c8e80504ee5dd321c284ea5ae0e2d371c416516"
+content-hash = "310f2087e131028e34a336cd23fb5f79b28b3bf8f38c889c857073e7283431bd"
