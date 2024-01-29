@@ -8,16 +8,13 @@ from pathlib import Path
 from typing import List
 
 from google.cloud import storage
-from prefect import task, Parameter
+from prefect import task
 from prefect.engine.signals import ENDRUN
 from prefect.engine.state import Skipped
-
-from prefeitura_rio.pipelines_utils.custom import FTPClient
-from prefeitura_rio.pipelines_utils.env import (
-    get_bd_credentials_from_env, 
-)
-from prefeitura_rio.pipelines_utils.infisical import get_secret
 from prefeitura_rio.pipelines_utils.bd import list_blobs_with_prefix
+from prefeitura_rio.pipelines_utils.custom import FTPClient
+from prefeitura_rio.pipelines_utils.env import get_bd_credentials_from_env
+from prefeitura_rio.pipelines_utils.infisical import get_secret_folder
 from prefeitura_rio.pipelines_utils.logging import log
 
 
@@ -82,9 +79,7 @@ def get_files_datalake(
                 prefix=f"{search_prefix}/data_particao={past_date_str}",
                 mode=mode,
             )
-            log(
-                f"Searched for blobs with prefix {search_prefix}/data_particao={past_date_str}"
-            )
+            log(f"Searched for blobs with prefix {search_prefix}/data_particao={past_date_str}")
             # Then, we merge the two lists
             blobs += past_blobs
             past_date += timedelta(days=1)
@@ -110,16 +105,12 @@ def get_ftp_client(secret_path: str):
     """
     Get FTP client
     """
-    
-    #hostname = get_secret("HOSTNAME",secret_path)
-    #log(f"debugging hostname: {hostname}") #debug
-    
-    password = get_secret("PASSWORD",secret_path)
-    log(f"debugging password: {password}") #debug
-
-    username = get_secret("USERNAME",secret_path)
-    log(f"debugging username: {username}") #debug
-
+    log(f"Getting secrets fomr secret_path: {secret_path}")  # debug
+    secrets_dict = get_secret_folder(secret_path=secret_path)
+    hostname = secrets_dict["HOSTNAME"]
+    password = secrets_dict["PASSWORD"]
+    username = secrets_dict["USERNAME"]
+    log("Getting FTP client")
     return FTPClient(hostname=hostname, username=username, password=password)
 
 
@@ -196,14 +187,8 @@ def select_files_to_download(
         log(f"Last 10 files on FTP for date {date}: {files[-10:]}")
 
     if greater_than:
-        files = [
-            file
-            for file in files
-            if file.split("-")[2] >= greater_than.replace("-", "")
-        ]
-        log(
-            f"Last 10 files on FTP for date  greater than {greater_than}: {files[-10:]}"
-        )
+        files = [file for file in files if file.split("-")[2] >= greater_than.replace("-", "")]
+        log(f"Last 10 files on FTP for date  greater than {greater_than}: {files[-10:]}")
 
     # Check if files are already on redis
     files = [file for file in files if file not in redis_files]
@@ -283,9 +268,7 @@ def upload_file_to_gcs(
         log(f"DEBUG: {file} e {file.name}")
         date_str = file.name.split("-")[2]
         date = datetime.strptime(date_str, "%Y%m%d").strftime("%Y-%m-%d")
-        blob_name = (
-            f"{prefix}/radar={radar}/produto={product}/data_particao={date}/{file.name}"
-        )
+        blob_name = f"{prefix}/radar={radar}/produto={product}/data_particao={date}/{file.name}"
         blob_name = blob_name.replace("//", "/")
     elif task_mode == "raw":
         blob_name = f"{prefix}/{file.name}"
