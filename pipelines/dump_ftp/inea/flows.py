@@ -46,8 +46,11 @@ with Flow(
     mode = Parameter("mode", default="prod", required=False)
     radar = Parameter("radar", default="gua", required=False)
     product = Parameter("product", default="ppi", required=False)
+    api_key_secret_path = Parameter(
+        "api_key_secret_path", required=True, default="/dump_ftp"
+    )
 
-    client = get_ftp_client()
+    client = get_ftp_client(secret_path=api_key_secret_path)
 
     files = get_files_from_ftp(
         client=client,

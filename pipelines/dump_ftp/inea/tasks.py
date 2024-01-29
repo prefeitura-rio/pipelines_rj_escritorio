@@ -8,15 +8,15 @@ from pathlib import Path
 from typing import List
 
 from google.cloud import storage
-from prefect import task
+from prefect import task, Parameter
 from prefect.engine.signals import ENDRUN
 from prefect.engine.state import Skipped
 
 from prefeitura_rio.pipelines_utils.custom import FTPClient
 from prefeitura_rio.pipelines_utils.env import (
     get_bd_credentials_from_env, 
-    get_vault_secret
 )
+from prefeitura_rio.pipelines_utils.infisical import get_secret
 from prefeitura_rio.pipelines_utils.bd import list_blobs_with_prefix
 from prefeitura_rio.pipelines_utils.logging import log
 
@@ -106,14 +106,14 @@ def get_files_datalake(
 
 
 @task
-def get_ftp_client(wait=None):
+def get_ftp_client(secret_path: str):
     """
     Get FTP client
     """
-    inea_secret = get_vault_secret("ftp_inea_radar")
-    hostname = inea_secret["data"]["hostname"]
-    username = inea_secret["data"]["username"]
-    password = inea_secret["data"]["password"]
+    
+    hostname = get_secret("HOSTNAME",secret_path)
+    username = get_secret("USERNAME",secret_path)
+    password = get_secret("PASSWORD",secret_path)
 
     return FTPClient(hostname=hostname, username=username, password=password)
 
