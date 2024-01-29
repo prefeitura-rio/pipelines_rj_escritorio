@@ -57,7 +57,7 @@ every_week = Schedule(
             interval=timedelta(weeks=1),
             start_date=pendulum.datetime(2021, 1, 1, 4, 0, 0, tz="America/Sao_Paulo"),
             labels=[
-                constants.RJ_ESCRITORIO_DEV_AGENT_LABEL.value,
+                constants.RJ_ESCRITORIO_AGENT_LABEL.value,
             ],
             parameter_defaults={
                 "project_ids": project_ids,
@@ -66,3 +66,4 @@ every_week = Schedule(
         )
     ]
 )
+
