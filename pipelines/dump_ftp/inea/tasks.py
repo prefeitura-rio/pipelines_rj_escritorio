@@ -112,13 +112,13 @@ def get_ftp_client(secret_path: str):
     """
     
     hostname = get_secret("HOSTNAME",secret_path)
-    log("debugging hostname:", {hostname}) #debug
+    log(f"debugging hostname: {hostname}") #debug
     
     password = get_secret("PASSWORD",secret_path)
-    log("debugging password:", {password}) #debug
+    log(f"debugging password: {password}") #debug
 
     username = get_secret("USERNAME",secret_path)
-    log("debugging username:", {username}) #debug
+    log(f"debugging username: {username}") #debug
 
     return FTPClient(hostname=hostname, username=username, password=password)
 
