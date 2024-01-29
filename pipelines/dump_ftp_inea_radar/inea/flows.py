@@ -12,7 +12,7 @@ from prefect.storage import GCS
 from prefect.utilities.edges import unmapped
 
 from pipelines.constants import constants
-from pipelines.dump_ftp.inea.tasks import (
+from pipelines.dump_ftp_inea_radar.inea.tasks import (
     get_ftp_client,
     get_files_datalake,
     get_files_from_ftp,
@@ -20,7 +20,7 @@ from pipelines.dump_ftp.inea.tasks import (
     select_files_to_download,
     upload_file_to_gcs,
 )
-from pipelines.dump_ftp.inea.schedules import (
+from pipelines.dump_ftp_inea_radar.inea.schedules import (
     every_5_minutes,
     every_5_minutes_mac,
     every_1_day,
