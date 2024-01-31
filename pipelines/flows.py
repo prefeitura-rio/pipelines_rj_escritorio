@@ -11,3 +11,4 @@ from pipelines.waze import *  # noqa
 from pipelines.dump_datario import * # noqa
 from pipelines.dump_ftp_inea_radar import * # noqa
 from pipelines.dump_policy_matrix import * # noqa
+from pipelines.data_catalog import * #noqa
