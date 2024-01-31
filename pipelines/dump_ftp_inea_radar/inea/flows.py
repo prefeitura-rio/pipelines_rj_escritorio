@@ -26,6 +26,7 @@ from pipelines.dump_ftp_inea_radar.inea.schedules import (
     every_1_day,
     every_1_day_mac,
 )
+from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
 from prefeitura_rio.pipelines_utils.tasks import get_on_redis, save_on_redis
 from prefeitura_rio.pipelines_utils.custom import Flow
 
@@ -113,6 +114,7 @@ inea_ftp_radar_flow.run_config = KubernetesRun(
     labels=[constants.RJ_ESCRITORIO_AGENT_LABEL.value],
 )
 inea_ftp_radar_flow.schedule = every_5_minutes
+inea_ftp_radar_flow.state_handlers=[handler_inject_bd_credentials]
 
 inea_ftp_radar_flow_mac = deepcopy(inea_ftp_radar_flow)
 inea_ftp_radar_flow_mac.name = "INEA: Captura FTP dados de radar (Macaé)"
