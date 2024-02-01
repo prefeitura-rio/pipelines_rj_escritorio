@@ -3,11 +3,11 @@
 Schedules for the data catalog pipeline.
 """
 
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 
+import pytz
 from prefect.schedules import Schedule
 from prefect.schedules.clocks import IntervalClock
-import pytz
 
 from pipelines.constants import constants
 
@@ -59,9 +59,7 @@ update_data_catalog_schedule = Schedule(
     clocks=[
         IntervalClock(
             interval=timedelta(days=7),
-            start_date=datetime(
-                2023, 3, 12, 23, 50, tzinfo=pytz.timezone("America/Sao_Paulo")
-            ),
+            start_date=datetime(2023, 3, 12, 23, 50, tzinfo=pytz.timezone("America/Sao_Paulo")),
             labels=[
                 constants.RJ_ESCRITORIO_AGENT_LABEL.value,
             ],

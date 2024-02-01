@@ -4,11 +4,11 @@
 Schedules for the INEA flows.
 """
 
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 
+import pytz
 from prefect.schedules import Schedule
 from prefect.schedules.clocks import IntervalClock
-import pytz
 
 from pipelines.constants import constants
 

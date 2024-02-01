@@ -12,7 +12,6 @@ from prefect.schedules.clocks import IntervalClock
 
 from pipelines.constants import constants
 
-
 project_ids = [
     "rj-escritorio",
     "rj-escritorio-dev",
@@ -66,4 +65,3 @@ every_week = Schedule(
         )
     ]
 )
-

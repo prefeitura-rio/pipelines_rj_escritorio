@@ -6,7 +6,6 @@ from typing import Any, List
 
 from google.cloud import bigquery
 from gspread.worksheet import Worksheet
-
 from prefeitura_rio.pipelines_utils.env import get_bd_credentials_from_env
 
 
@@ -22,9 +21,7 @@ def get_bigquery_client(mode: str = "prod") -> bigquery.Client:
     return client
 
 
-def write_data_to_gsheets(
-    worksheet: Worksheet, data: List[List[Any]], start_cell: str = "A1"
-):
+def write_data_to_gsheets(worksheet: Worksheet, data: List[List[Any]], start_cell: str = "A1"):
     """
     Write data to a Google Sheets worksheet.
 
