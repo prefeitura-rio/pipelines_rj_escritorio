@@ -158,6 +158,7 @@ def generate_dataframe_from_list_of_tables(list_of_tables: list) -> pd.DataFrame
     log(f"Generated DataFrame with shape {dataframe.shape}.")
     return dataframe
 
+
 @task
 def update_gsheets_data_catalog(
     dataframe: pd.DataFrame, spreadsheet_url: str, sheet_name: str
