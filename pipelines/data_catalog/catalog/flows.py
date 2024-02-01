@@ -48,7 +48,6 @@ with Flow(
         sheet_name=sheet_name,
     )
 
-
 rj_escritorio_data_catalog_flow.storage = GCS(constants.GCS_FLOWS_BUCKET.value)
 rj_escritorio_data_catalog_flow.state_handlers = [handler_inject_bd_credentials]
 rj_escritorio_data_catalog_flow.run_config = KubernetesRun(
