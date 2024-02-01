@@ -175,7 +175,7 @@ def update_gsheets_data_catalog(
         sheet_name: Google Sheets sheet name.
     """
     # Get gspread client
-    credentials = get_credentials_from_env(
+    credentials = get_bd_credentials_from_env(
         scopes=[
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive",
