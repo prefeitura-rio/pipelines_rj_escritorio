@@ -158,7 +158,6 @@ def generate_dataframe_from_list_of_tables(list_of_tables: list) -> pd.DataFrame
     log(f"Generated DataFrame with shape {dataframe.shape}.")
     return dataframe
 
-
 @task
 def update_gsheets_data_catalog(
     dataframe: pd.DataFrame, spreadsheet_url: str, sheet_name: str
@@ -179,30 +178,43 @@ def update_gsheets_data_catalog(
         ]
     )
     gspread_client = gspread.authorize(credentials)
-    # Open spreadsheet
-    log(f"Opening Google Sheets spreadsheet {spreadsheet_url} with sheet {sheet_name}.")
-    sheet = gspread_client.open_by_url(spreadsheet_url)
-    worksheet = sheet.worksheet(sheet_name)
-    # Update spreadsheet
-    log("Deleting old data.")
-    worksheet.clear()
-    log("Rewriting headers.")
-    write_data_to_gsheets(
-        worksheet=worksheet,
-        data=[dataframe.columns.tolist()],
-    )
-    log("Updating new data.")
-    write_data_to_gsheets(
-        worksheet=worksheet,
-        data=dataframe.values.tolist(),
-        start_cell="A2",
-    )
-    # Add filters
-    log("Adding filters.")
-    first_col = "A"
-    last_col = chr(ord(first_col) + len(dataframe.columns) - 1)
-    worksheet.set_basic_filter(f"{first_col}:{last_col}")
-    # Resize columns
-    log("Resizing columns.")
-    worksheet.columns_auto_resize(0, len(dataframe.columns) - 1)
-    log("Done.")
+
+    # Validate and Open spreadsheet
+    try:
+        if isinstance(spreadsheet_url, str):
+            log(f"Opening Google Sheets spreadsheet {spreadsheet_url} with sheet {sheet_name}.")
+            sheet = gspread_client.open_by_url(spreadsheet_url)
+            worksheet = sheet.worksheet(sheet_name)
+        else:
+            raise ValueError("Spreadsheet URL must be a string.")
+
+        # Update spreadsheet
+        log("Deleting old data.")
+        worksheet.clear()
+        log("Rewriting headers.")
+        write_data_to_gsheets(
+            worksheet=worksheet,
+            data=[dataframe.columns.tolist()],
+        )
+        log("Updating new data.")
+        write_data_to_gsheets(
+            worksheet=worksheet,
+            data=dataframe.values.tolist(),
+            start_cell="A2",
+        )
+        # Add filters
+        log("Adding filters.")
+        first_col = "A"
+        last_col = chr(ord(first_col) + len(dataframe.columns) - 1)
+        worksheet.set_basic_filter(f"{first_col}:{last_col}")
+        # Resize columns
+        log("Resizing columns.")
+        worksheet.columns_auto_resize(0, len(dataframe.columns) - 1)
+        log("Done.")
+
+    except ValueError as e:
+        log(f"ValueError: {e}")
+    except gspread.SpreadsheetNotFound:
+        log("Spreadsheet not found. Please check the URL.")
+    except Exception as e:
+        log(f"An unexpected error occurred: {e}")
