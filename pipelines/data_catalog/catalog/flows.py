@@ -16,6 +16,7 @@ from pipelines.data_catalog.catalog.tasks import (
     merge_list_of_list_of_tables,
     update_gsheets_data_catalog,
 )
+from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
 from prefeitura_rio.pipelines_utils.custom import Flow
 
 with Flow(
@@ -49,6 +50,7 @@ with Flow(
 
 
 rj_escritorio_data_catalog_flow.storage = GCS(constants.GCS_FLOWS_BUCKET.value)
+rj_escritorio_data_catalog_flow.state_handlers = [handler_inject_bd_credentials]
 rj_escritorio_data_catalog_flow.run_config = KubernetesRun(
     image=constants.DOCKER_IMAGE.value,
     labels=[constants.RJ_ESCRITORIO_AGENT_LABEL.value],
