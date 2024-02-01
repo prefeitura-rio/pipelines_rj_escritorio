@@ -5,19 +5,20 @@ Tasks for generating a data catalog from BigQuery.
 """
 from typing import List
 
+import gspread
+import pandas as pd
 from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 from googleapiclient import discovery
-import gspread
-import pandas as pd
 from prefect import task
+from prefeitura_rio.pipelines_utils.env import get_bd_credentials_from_env
+from prefeitura_rio.pipelines_utils.logging import log
 
 from pipelines.data_catalog.catalog.utils import (
     get_bigquery_client,
     write_data_to_gsheets,
 )
-from prefeitura_rio.pipelines_utils.env import get_bd_credentials_from_env
-from prefeitura_rio.pipelines_utils.logging import log
+
 
 @task
 def list_projects(
@@ -47,9 +48,7 @@ def list_projects(
                 continue
             log(f"Found project {project_id}.")
             projects.append(project_id)
-        request = service.projects().list_next(
-            previous_request=request, previous_response=response
-        )
+        request = service.projects().list_next(previous_request=request, previous_response=response)
     log(f"Found {len(projects)} projects.")
     return projects
 
@@ -99,9 +98,7 @@ def list_tables(  # pylint: disable=too-many-arguments
             if exclude_test and "test" in dataset_id:
                 log(f"Excluding test dataset {dataset_id}.")
                 continue
-            if exclude_logs and (
-                dataset_id.startswith("logs_") or dataset_id.endswith("_logs")
-            ):
+            if exclude_logs and (dataset_id.startswith("logs_") or dataset_id.endswith("_logs")):
                 log(f"Excluding logs dataset {dataset_id}.")
                 continue
             for table in client.list_tables(dataset):

@@ -2,4 +2,4 @@
 """
 Prefect flows for Escritorio's project
 """
-from pipelines.data_catalog.catalog.flows import * #noqa
+from pipelines.data_catalog.catalog.flows import *  # noqa

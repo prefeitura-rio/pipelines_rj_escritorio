@@ -2,4 +2,4 @@
 """
 Prefect flows for Escritorio's project
 """
-from pipelines.waze.dump_alertas.flows import * #noqa
+from pipelines.waze.dump_alertas.flows import *  # noqa

@@ -6,6 +6,8 @@ from prefect import Parameter
 from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
 from prefect.utilities.edges import unmapped
+from prefeitura_rio.pipelines_utils.custom import Flow
+from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
 
 from pipelines.constants import constants
 from pipelines.data_catalog.catalog.schedules import update_data_catalog_schedule
@@ -16,8 +18,6 @@ from pipelines.data_catalog.catalog.tasks import (
     merge_list_of_list_of_tables,
     update_gsheets_data_catalog,
 )
-from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
-from prefeitura_rio.pipelines_utils.custom import Flow
 
 with Flow(
     name="EMD: utils - Gerar catálogo de dados",

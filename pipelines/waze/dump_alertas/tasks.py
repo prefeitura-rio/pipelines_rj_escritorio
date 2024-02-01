@@ -9,15 +9,15 @@ Tasks for emd
 from datetime import datetime, timedelta
 
 import basedosdados as bd
-from google.cloud import bigquery
 import pandas as pd
-from prefect import task
-import requests
-from shapely.wkt import loads
 import pendulum
 import prefect
+import requests
+from google.cloud import bigquery
+from prefect import task
 from prefect.client import Client
 from prefeitura_rio.core import settings
+from shapely.wkt import loads
 
 
 @task(
@@ -241,6 +241,7 @@ def upload_to_native_table(
 
     job.result()
 
+
 @prefect.task(checkpoint=False)
 def get_now_time():
     """
@@ -249,6 +250,7 @@ def get_now_time():
     now = pendulum.now(pendulum.timezone("America/Sao_Paulo"))
 
     return f"{now.hour}:{f'0{now.minute}' if len(str(now.minute))==1 else now.minute}"
+
 
 @task
 def rename_current_flow_run_now_time(prefix: str, now_time=None, wait=None) -> None:

@@ -10,26 +10,25 @@ from prefect import Parameter
 from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
 from prefect.utilities.edges import unmapped
+from prefeitura_rio.pipelines_utils.custom import Flow
+from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
+from prefeitura_rio.pipelines_utils.tasks import get_on_redis, save_on_redis
 
 from pipelines.constants import constants
+from pipelines.dump_ftp_inea_radar.inea.schedules import (
+    every_1_day,
+    every_1_day_mac,
+    every_5_minutes,
+    every_5_minutes_mac,
+)
 from pipelines.dump_ftp_inea_radar.inea.tasks import (
-    get_ftp_client,
+    download_files,
     get_files_datalake,
     get_files_from_ftp,
-    download_files,
+    get_ftp_client,
     select_files_to_download,
     upload_file_to_gcs,
 )
-from pipelines.dump_ftp_inea_radar.inea.schedules import (
-    every_5_minutes,
-    every_5_minutes_mac,
-    every_1_day,
-    every_1_day_mac,
-)
-from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
-from prefeitura_rio.pipelines_utils.tasks import get_on_redis, save_on_redis
-from prefeitura_rio.pipelines_utils.custom import Flow
-
 
 with Flow(
     "INEA: Captura FTP dados de radar (Guaratiba)",
@@ -38,18 +37,12 @@ with Flow(
     date = Parameter("date", default=None, required=False)
     get_only_last_file = Parameter("get_only_last_file", default=True, required=False)
     greater_than = Parameter("greater_than", default=None, required=False)
-    check_datalake_files = Parameter(
-        "check_datalake_files", default=True, required=False
-    )
-    prefix = Parameter(
-        "prefix", default="raw/meio_ambiente_clima/inea_radar_hdf5", required=False
-    )
+    check_datalake_files = Parameter("check_datalake_files", default=True, required=False)
+    prefix = Parameter("prefix", default="raw/meio_ambiente_clima/inea_radar_hdf5", required=False)
     mode = Parameter("mode", default="prod", required=False)
     radar = Parameter("radar", default="gua", required=False)
     product = Parameter("product", default="ppi", required=False)
-    api_key_secret_path = Parameter(
-        "api_key_secret_path", required=True, default="/dump_ftp"
-    )
+    api_key_secret_path = Parameter("api_key_secret_path", required=True, default="/dump_ftp")
 
     client = get_ftp_client(secret_path=api_key_secret_path)
 
@@ -86,9 +79,7 @@ with Flow(
         get_only_last_file=get_only_last_file,
     )
 
-    files_to_upload = download_files(
-        client=client, files=files_to_download, radar=radar
-    )
+    files_to_upload = download_files(client=client, files=files_to_download, radar=radar)
 
     upload_files = upload_file_to_gcs.map(
         file_to_upload=files_to_upload,
@@ -114,7 +105,7 @@ inea_ftp_radar_flow.run_config = KubernetesRun(
     labels=[constants.RJ_ESCRITORIO_AGENT_LABEL.value],
 )
 inea_ftp_radar_flow.schedule = every_5_minutes
-inea_ftp_radar_flow.state_handlers=[handler_inject_bd_credentials]
+inea_ftp_radar_flow.state_handlers = [handler_inject_bd_credentials]
 
 inea_ftp_radar_flow_mac = deepcopy(inea_ftp_radar_flow)
 inea_ftp_radar_flow_mac.name = "INEA: Captura FTP dados de radar (Macaé)"

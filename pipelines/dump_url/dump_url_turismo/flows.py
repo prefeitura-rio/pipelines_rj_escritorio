@@ -7,15 +7,12 @@ from copy import deepcopy
 
 from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
-
-from pipelines.constants import constants
-
-from pipelines.dump_url.dump_url_turismo.schedules import (
-    gsheets_daily_update_schedule,
-)
 from prefeitura_rio.pipelines_templates.dump_url.flows import dump_url_flow
 from prefeitura_rio.pipelines_utils.prefect import set_default_parameters
 from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
+
+from pipelines.constants import constants
+from pipelines.dump_url.dump_url_turismo.schedules import gsheets_daily_update_schedule
 
 setur_gsheets_flow = deepcopy(dump_url_flow)
 setur_gsheets_flow.name = "SETUR: Google Sheets - Ingerir tabelas de URL"
