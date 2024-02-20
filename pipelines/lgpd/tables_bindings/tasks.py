@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from random import random
+from time import sleep
 from typing import List
 
 import gspread
@@ -72,6 +74,8 @@ def get_project_tables_iam_policies(project_id: str) -> pd.DataFrame:
         log(
             f"Getting IAM policies for batch {i + 1}/{len(tables_batches)} (project_id={project_id})."  # noqa
         )
+        # Sleep for a random time to avoid hitting the API rate limit
+        sleep(random() * 15)
         request = asset.BatchGetEffectiveIamPoliciesRequest(scope=scope, names=table_batch)
         response = client.batch_get_effective_iam_policies(request=request)
 
