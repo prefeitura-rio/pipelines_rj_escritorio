@@ -217,7 +217,7 @@ def get_prediction(
     )
 
     responses.resolve()
-    if type(responses) == tuple:
+    if isinstance(responses, tuple):
         responses = responses[0]
     json_string = responses.text.replace("```json\n", "").replace("\n```", "")
     label = json.loads(json_string)["label"]
