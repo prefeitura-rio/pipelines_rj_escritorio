@@ -18,7 +18,7 @@ with Flow(
     name="LGPD - Lista de permissões de acesso a tabelas do BigQuery",
     state_handlers=[handler_inject_bd_credentials],
     skip_if_running=True,
-    parallelism=100,
+    parallelism=5,
 ) as rj_escritorio__lgpd__tables_bindings__flow:
     # Parameters
     credentials_secret_name = Parameter("credentials_secret_name")
