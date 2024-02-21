@@ -5,7 +5,7 @@ from time import sleep
 from typing import Any, List, Tuple
 
 import pandas as pd
-from google.api_core.exceptions import FailedPrecondition, NotFound
+from google.api_core.exceptions import FailedPrecondition, NotFound, ResourceExhausted
 from google.cloud import asset, bigquery
 from google.cloud.asset_v1.types.asset_service import (
     BatchGetEffectiveIamPoliciesResponse,
@@ -60,6 +60,17 @@ def batch_get_effective_iam_policies(
             retries += 1
             if retries >= max_retries:
                 raise FailedPrecondition(
+                    f"Failed to get effective IAM policies after {max_retries} attempts."
+                ) from exc
+        except ResourceExhausted as exc:
+            # This is a quota issue. We should wait and retry.
+            log(
+                f"Reached API quota. Retrying in {retry_delay * (backoff_factor**retries)} seconds."
+            )
+            sleep(retry_delay * (backoff_factor**retries))
+            retries += 1
+            if retries >= max_retries:
+                raise ResourceExhausted(
                     f"Failed to get effective IAM policies after {max_retries} attempts."
                 ) from exc
         except NotFound:
