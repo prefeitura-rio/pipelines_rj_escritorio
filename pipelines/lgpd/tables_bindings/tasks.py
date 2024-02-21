@@ -76,6 +76,9 @@ def get_project_tables_iam_policies(project_id: str, credentials_secret_name: st
         )
         df_batch = batch_get_effective_iam_policies(client=client, scope=scope, names=table_batch)
         dfs.append(df_batch)
+    if len(dfs) == 0:
+        log(f"No IAM policies found for project {project_id}.")
+        return pd.DataFrame()
     df = merge_dataframes_fn(dfs)
     log(f"Found {len(df)} IAM policies for project {project_id}.")
     return df
