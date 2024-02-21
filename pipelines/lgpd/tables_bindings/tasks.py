@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from random import random
-from time import sleep
 from typing import List
 
 import gspread
@@ -11,9 +9,10 @@ from prefect import task
 from prefeitura_rio.pipelines_utils.logging import log
 
 from pipelines.lgpd.tables_bindings.utils import (
+    batch_get_effective_iam_policies,
     get_gcp_credentials,
     list_tables,
-    parse_table_name,
+    merge_dataframes_fn,
     write_data_to_gsheets,
 )
 
@@ -46,7 +45,7 @@ def list_projects(credentials_secret_name: str) -> List[str]:
 
 
 @task
-def get_project_tables_iam_policies(project_id: str) -> pd.DataFrame:
+def get_project_tables_iam_policies(project_id: str, credentials_secret_name: str) -> pd.DataFrame:
     """
     Get IAM policies for a list of tables in a given project.
 
@@ -63,41 +62,21 @@ def get_project_tables_iam_policies(project_id: str) -> pd.DataFrame:
             - role: The role for the binding.
             - member: The member for the binding.
     """
-    tables = list_tables(project_id)
+    credentials = get_gcp_credentials(secret_name=credentials_secret_name)
+    tables = list_tables(project_id, credentials)
     log(f"Found {len(tables)} tables in project {project_id}.")
-    client = asset.AssetServiceClient()
+    client = asset.AssetServiceClient(credentials=credentials)
     scope = f"projects/{project_id}"
     # Split tables in batches of 20 (maximum allowed by the API)
     tables_batches = [tables[i : i + 20] for i in range(0, len(tables), 20)]  # noqa
-    policies = []
+    dfs = []
     for i, table_batch in enumerate(tables_batches):
         log(
             f"Getting IAM policies for batch {i + 1}/{len(tables_batches)} (project_id={project_id})."  # noqa
         )
-        # Sleep for a random time to avoid hitting the API rate limit
-        sleep(random() * 15)
-        request = asset.BatchGetEffectiveIamPoliciesRequest(scope=scope, names=table_batch)
-        response = client.batch_get_effective_iam_policies(request=request)
-
-        for policy_result in response.policy_results:
-            project_id, dataset_id, table_id = parse_table_name(policy_result.full_resource_name)
-            for policy_info in policy_result.policies:
-                attached_resource = policy_info.attached_resource
-                policy = policy_info.policy
-                for binding in policy.bindings:
-                    role = binding.role
-                    for member in binding.members:
-                        policies.append(
-                            {
-                                "project_id": project_id,
-                                "dataset_id": dataset_id,
-                                "table_id": table_id,
-                                "attached_resource": attached_resource,
-                                "role": role,
-                                "member": member,
-                            }
-                        )
-    df = pd.DataFrame(policies)
+        df_batch = batch_get_effective_iam_policies(client=client, scope=scope, names=table_batch)
+        dfs.append(df_batch)
+    df = merge_dataframes_fn(dfs)
     log(f"Found {len(df)} IAM policies for project {project_id}.")
     return df
 
@@ -114,7 +93,7 @@ def merge_dataframes(dfs: List[pd.DataFrame]) -> pd.DataFrame:
         pd.DataFrame: The merged DataFrame.
     """
     log(f"Merging {len(dfs)} DataFrames.")
-    return pd.concat(dfs, ignore_index=True)
+    return merge_dataframes_fn(dfs)
 
 
 @task

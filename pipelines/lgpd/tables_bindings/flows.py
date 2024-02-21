@@ -2,6 +2,7 @@
 from prefect import Parameter
 from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
+from prefect.utilities.edges import unmapped
 from prefeitura_rio.pipelines_utils.custom import Flow
 from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
 
@@ -27,7 +28,9 @@ with Flow(
 
     # Flow
     project_ids = list_projects(credentials_secret_name=credentials_secret_name)
-    iam_policies_dataframes = get_project_tables_iam_policies.map(project_id=project_ids)
+    iam_policies_dataframes = get_project_tables_iam_policies.map(
+        project_id=project_ids, credentials_secret_name=unmapped(credentials_secret_name)
+    )
     merged_dataframe = merge_dataframes(dfs=iam_policies_dataframes)
     upload_dataframe_to_gsheets(
         dataframe=merged_dataframe,

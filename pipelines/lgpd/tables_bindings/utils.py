@@ -1,12 +1,125 @@
 # -*- coding: utf-8 -*-
 import base64
 import json
+from time import sleep
 from typing import Any, List, Tuple
 
-from google.cloud import bigquery
+import pandas as pd
+from google.api_core.exceptions import FailedPrecondition, NotFound
+from google.cloud import asset, bigquery
+from google.cloud.asset_v1.types.asset_service import (
+    BatchGetEffectiveIamPoliciesResponse,
+)
 from google.oauth2 import service_account
 from gspread.worksheet import Worksheet
 from prefeitura_rio.pipelines_utils.infisical import get_secret
+from prefeitura_rio.pipelines_utils.logging import log
+
+
+def batch_get_effective_iam_policies(
+    client: asset.AssetServiceClient,
+    scope: str,
+    names: List[str],
+    retry_delay: float = 7.5,
+    backoff_factor: float = 2,
+    max_retries: int = 5,
+) -> pd.DataFrame:
+    """
+    Batch get effective IAM policies.
+
+    Args:
+        scope: The scope.
+        names: The names.
+        retry_delay: The retry delay.
+        backoff_factor: The backoff factor for exponential backoff.
+        max_retries: The maximum number of retries.
+
+    Returns:
+        pd.DataFrame: A DataFrame with the IAM policies for the given tables. The dataframe contains
+            the following columns:
+            - project_id: The project ID.
+            - dataset_id: The dataset ID.
+            - table_id: The table ID.
+            - attached_resource: The resource to which the policy is attached.
+            - role: The role for the binding.
+            - member: The member for the binding.
+    """
+    success = False
+    retries = 0
+    while not success and retries < max_retries:
+        try:
+            request = asset.BatchGetEffectiveIamPoliciesRequest(scope=scope, names=names)
+            response = client.batch_get_effective_iam_policies(request=request)
+            return build_dataframe_from_batch_get_effective_iam_policies_response(response)
+        except FailedPrecondition as exc:
+            # This is a quota issue. We should wait and retry.
+            log(
+                f"Reached API quota. Retrying in {retry_delay * (backoff_factor**retries)} seconds."
+            )
+            sleep(retry_delay * (backoff_factor**retries))
+            retries += 1
+            if retries >= max_retries:
+                raise FailedPrecondition(
+                    f"Failed to get effective IAM policies after {max_retries} attempts."
+                ) from exc
+        except NotFound:
+            # A resource was not found. We must handle the situation this way:
+            # - If len(names) > 1, we must split the list in half and call the function recursively.
+            # - If len(names) == 1, we must log the error and return an empty response.
+            if len(names) > 1:
+                log(
+                    f"Some resources were not found. Splitting the list (size={len(names)}) and retrying."  # noqa
+                )
+                half = len(names) // 2
+                left = names[:half]
+                right = names[half:]
+                left_df = batch_get_effective_iam_policies(client=client, scope=scope, names=left)
+                right_df = batch_get_effective_iam_policies(client=client, scope=scope, names=right)
+                return merge_dataframes_fn([left_df, right_df])
+            else:
+                log(f"Resource {names[0]} not found. Skipping.", level="warning")
+                return pd.DataFrame()
+
+
+def build_dataframe_from_batch_get_effective_iam_policies_response(
+    response: BatchGetEffectiveIamPoliciesResponse,
+) -> pd.DataFrame:
+    """
+    Build a DataFrame from a BatchGetEffectiveIamPoliciesResponse.
+
+    Args:
+        response: The response.
+
+    Returns:
+        pd.DataFrame: A DataFrame with the IAM policies for the given tables. The dataframe contains
+            the following columns:
+            - project_id: The project ID.
+            - dataset_id: The dataset ID.
+            - table_id: The table ID.
+            - attached_resource: The resource to which the policy is attached.
+            - role: The role for the binding.
+            - member: The member for the binding.
+    """
+    policies = []
+    for policy_result in response.policy_results:
+        project_id, dataset_id, table_id = parse_table_name(policy_result.full_resource_name)
+        for policy_info in policy_result.policies:
+            attached_resource = policy_info.attached_resource
+            policy = policy_info.policy
+            for binding in policy.bindings:
+                role = binding.role
+                for member in binding.members:
+                    policies.append(
+                        {
+                            "project_id": project_id,
+                            "dataset_id": dataset_id,
+                            "table_id": table_id,
+                            "attached_resource": attached_resource,
+                            "role": role,
+                            "member": member,
+                        }
+                    )
+    return pd.DataFrame(policies)
 
 
 def get_gcp_credentials(secret_name: str, scopes: List[str] = None) -> service_account.Credentials:
@@ -28,11 +141,11 @@ def get_gcp_credentials(secret_name: str, scopes: List[str] = None) -> service_a
     return credentials
 
 
-def list_tables(project_id: str) -> List[str]:
+def list_tables(project_id: str, credentials: service_account.Credentials) -> List[str]:
     """List all tables in a given project. The output is a list of strings in the format
     `//bigquery.googleapis.com/projects/{project_id}/datasets/{dataset_id}/tables/{table_id}`.
     """
-    client = bigquery.Client(project=project_id)
+    client = bigquery.Client(project=project_id, credentials=credentials)
     datasets = client.list_datasets()
     tables = []
 
@@ -45,6 +158,20 @@ def list_tables(project_id: str) -> List[str]:
             )
 
     return tables
+
+
+def merge_dataframes_fn(dfs: List[pd.DataFrame]) -> pd.DataFrame:
+    """
+    Merge a list of DataFrames into a single DataFrame.
+
+    Args:
+        dfs (List[pd.DataFrame]): The DataFrames to merge.
+
+    Returns:
+        pd.DataFrame: The merged DataFrame.
+    """
+    log(f"Merging {len(dfs)} DataFrames.")
+    return pd.concat(dfs, ignore_index=True)
 
 
 def parse_table_name(table: str) -> Tuple[str, str, str]:
