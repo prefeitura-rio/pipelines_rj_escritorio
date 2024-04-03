@@ -24,6 +24,9 @@ pillow = "^10.1.0"
 shapely = "^2.0.2"
 h3 = "^3.7.6"
 google-cloud-asset = "^3.24.1"
+googlemaps = "^4.10.0"
+google-cloud-firestore = "^2.16.0"
+firebase-admin = "^6.5.0"
 
 [tool.poetry.group.dev]
 optional = true
