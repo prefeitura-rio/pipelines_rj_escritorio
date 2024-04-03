@@ -21,7 +21,7 @@ with Flow(
     name="Mapa de Realizações - Atualiza banco de dados do Firestore",
     state_handlers=[handler_inject_bd_credentials],
     skip_if_running=True,
-    parallelism=5,
+    parallelism=50,
 ) as rj_escritorio__mapa_realizacoes__infopref__flow:
     # Parameters
     firestore_credentials_secret_name = Parameter(

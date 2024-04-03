@@ -11,7 +11,7 @@ from googlemaps import Client as GoogleMapsClient
 from prefect import task
 from prefeitura_rio.pipelines_utils.infisical import get_secret
 
-from pipelines.mapa_realizacoes.infopref.utils import to_snake_case
+from pipelines.mapa_realizacoes.infopref.utils import to_camel_case, to_snake_case
 
 
 @task
@@ -184,6 +184,8 @@ def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
     all_id_temas = [doc.id for doc in db.collection("tema").stream()]
 
     # Check if all IDs from the input data are present in Firestore
+    batch = db.batch()
+    batch_len = 0
     for entry in data:
         if entry["id_bairro"] not in all_id_bairros:
             raise ValueError(f"ID {entry['id_bairro']} not found in Firestore.")
@@ -192,9 +194,21 @@ def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
         if entry["id_orgao"] not in all_id_orgaos:
             raise ValueError(f"ID {entry['id_orgao']} not found in Firestore.")
         if entry["id_programa"] not in all_id_programas:
-            raise ValueError(f"ID {entry['id_programa']} not found in Firestore.")
+            batch.set(
+                db.collection("programa").document(entry["id_programa"]),
+                {"nome": to_camel_case(entry["id_programa"]), "descricao": ""},
+            )
+            batch_len += 1
         if entry["id_tema"] not in all_id_temas:
-            raise ValueError(f"ID {entry['id_tema']} not found in Firestore.")
+            batch.set(
+                db.collection("tema").document(entry["id_tema"]),
+                {"nome": to_camel_case(entry["id_tema"])},
+            )
+            batch_len += 1
+        if batch_len > 0:
+            batch.commit()
+            batch = db.batch()
+            batch_len = 0
 
     # Upload data to Firestore. This will be done in a few steps:
     # - First we have to add the document to the `realizacao` collection. This will have all the
