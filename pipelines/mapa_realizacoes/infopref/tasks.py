@@ -84,7 +84,10 @@ def load_firestore_credential_to_file(secret_name: str = "FIRESTORE_CREDENTIALS"
         f.write(credentials)
 
 
-@task
+@task(
+    max_retries=3,
+    retry_delay=timedelta(seconds=5),
+)
 def transform_infopref_to_firebase(entry: Dict[str, Any], gmaps_key: str) -> Dict[str, Any]:
     """
     Transform the infopref data to the firebase format.
