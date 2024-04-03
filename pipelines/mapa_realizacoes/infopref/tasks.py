@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+from datetime import timedelta
 from typing import Any, Dict, List
 
 import firebase_admin
@@ -163,7 +164,10 @@ def transform_infopref_to_firebase(entry: Dict[str, Any], gmaps_key: str) -> Dic
     return output
 
 
-@task
+@task(
+    max_retries=3,
+    retry_delay=timedelta(seconds=5),
+)
 def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
     """
     Upload the infopref data to Firestore.
