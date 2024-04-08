@@ -10,6 +10,7 @@ from google.cloud.firestore import GeoPoint
 from google.cloud.firestore_v1.client import Client as FirestoreClient
 from googlemaps import Client as GoogleMapsClient
 from prefeitura_rio.pipelines_utils.infisical import get_secret
+from prefeitura_rio.pipelines_utils.logging import log
 
 from pipelines.mapa_realizacoes.infopref.utils import to_camel_case, to_snake_case
 from pipelines.utils import authenticated_task as task
@@ -124,8 +125,14 @@ def transform_infopref_to_firebase(entry: Dict[str, Any], gmaps_key: str) -> Dic
     gmaps_client: GoogleMapsClient = GoogleMapsClient(key=gmaps_key)
     full_address = f"{entry['logradouro']}, {entry['bairro']}, Rio de Janeiro, Brazil"
     geocode_result = gmaps_client.geocode(full_address)
+    # If we fail to geo-locate the address, we use the neighborhood as a fallback
     if not geocode_result:
-        raise ValueError(f"Could not geocode address {full_address}.")
+        log(f"Could not geocode address {full_address}. Falling back to neighborhood.", "warning")
+        full_address = f"{entry['bairro']}, Rio de Janeiro, Brazil"
+        geocode_result = gmaps_client.geocode(full_address)
+        # If we still fail, we raise an error
+        if not geocode_result:
+            raise ValueError(f"Could not geocode address {full_address}.")
     latitude = geocode_result[0]["geometry"]["location"]["lat"]
     longitude = geocode_result[0]["geometry"]["location"]["lng"]
     coords = GeoPoint(latitude, longitude)
