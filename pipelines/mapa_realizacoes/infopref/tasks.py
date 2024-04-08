@@ -108,8 +108,7 @@ def transform_infopref_to_firebase(entry: Dict[str, Any], gmaps_key: str) -> Dic
         "bairro",  # future id_bairro
         "status",  # future id_status
         "titulo",  # future nome and image_folder
-        "investimento_pcrj",  # future investimento
-        "investimento_externo",  # future investimento
+        "investimento",  # future investimento
         "orgao_extenso",  # future id_orgao
         "programa",  # future id_programa
         "tema",  # future id_tema
@@ -136,13 +135,7 @@ def transform_infopref_to_firebase(entry: Dict[str, Any], gmaps_key: str) -> Dic
     id_bairro = to_snake_case(entry["bairro"])
     id_status = to_snake_case(entry["status"])
     image_folder = to_snake_case(entry["titulo"])
-    investimento = (
-        float(entry["investimento_pcrj"])
-        if entry["investimento_pcrj"]
-        else 0 + float(entry["investimento_externo"])
-        if entry["investimento_externo"]
-        else 0
-    )
+    investimento = float(entry["investimento"]) if entry["investimento"] else 0
     nome = entry["titulo"]
     id_orgao = to_snake_case(entry["orgao_extenso"])
     id_programa = to_snake_case(entry["programa"])
