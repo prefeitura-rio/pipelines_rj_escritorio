@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import base64
 from os import environ
+from pathlib import Path
 from typing import Any, Callable, Union
 
 import prefect
@@ -9,10 +10,35 @@ from prefeitura_rio.pipelines_utils.logging import log
 from prefeitura_rio.pipelines_utils.prefect import get_flow_run_mode
 
 
-def inject_bd_credentials(environment: str = "staging") -> None:
+def inject_bd_credentials(environment: str = "dev", force_injection=False) -> None:
     """
     Loads Base dos Dados credentials from Infisical into environment variables.
+
+    Args:
+        environment (str, optional): The infiscal environment for which to retrieve credentials.
+            Defaults to 'dev'. Accepts 'dev' or 'prod'.
+
+    Returns:
+        None
     """
+    # Verify if all environment variables are already set
+    all_variables_set = True
+    for variable in [
+        "BASEDOSDADOS_CONFIG",
+        "BASEDOSDADOS_CREDENTIALS_PROD",
+        "BASEDOSDADOS_CREDENTIALS_STAGING",
+        "GOOGLE_APPLICATION_CREDENTIALS",
+    ]:
+        if not environ.get(variable):
+            all_variables_set = False
+            break
+
+    # If all variables are set, skip injection
+    if all_variables_set and not force_injection:
+        log("All environment variables are already set. Skipping injection.")
+        return
+
+    # Else inject the variables
     client = get_infisical_client()
 
     log(f"ENVIROMENT: {environment}")
@@ -27,10 +53,15 @@ def inject_bd_credentials(environment: str = "staging") -> None:
             client=client,
         )
 
-    service_account_name = f"BASEDOSDADOS_CREDENTIALS_{environment.upper()}"
-    service_account = base64.b64decode(environ[service_account_name])
+    # Create service account file for Google Cloud
+    service_account_name = "BASEDOSDADOS_CREDENTIALS_PROD"
+    credentials = base64.b64decode(environ[service_account_name])
+
+    if not Path("/tmp").exists():
+        Path("/tmp").mkdir()
+
     with open("/tmp/credentials.json", "wb") as credentials_file:
-        credentials_file.write(service_account)
+        credentials_file.write(credentials)
     environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/credentials.json"
 
 
