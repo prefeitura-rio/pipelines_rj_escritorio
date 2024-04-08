@@ -167,6 +167,7 @@ def transform_infopref_to_firebase(entry: Dict[str, Any], gmaps_key: str) -> Dic
     return output
 
 
+@task
 def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
     """
     Upload the infopref data to Firestore.
