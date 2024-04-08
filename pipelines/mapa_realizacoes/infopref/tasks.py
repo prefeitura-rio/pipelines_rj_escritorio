@@ -167,10 +167,6 @@ def transform_infopref_to_firebase(entry: Dict[str, Any], gmaps_key: str) -> Dic
     return output
 
 
-@task(
-    max_retries=3,
-    retry_delay=timedelta(seconds=5),
-)
 def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
     """
     Upload the infopref data to Firestore.
@@ -193,13 +189,17 @@ def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
     # Check if all IDs from the input data are present in Firestore
     batch = db.batch()
     batch_len = 0
+    ok_entries = []
     for entry in data:
         if entry["id_bairro"] not in all_id_bairros:
-            raise ValueError(f"ID {entry['id_bairro']} not found in Firestore.")
+            log(f"ID {entry['id_bairro']} not found in Firestore for realizacao {data}.", "warning")
+            continue
         if entry["id_status"] not in all_id_status:
-            raise ValueError(f"ID {entry['id_status']} not found in Firestore.")
+            log(f"ID {entry['id_status']} not found in Firestore for realizacao {data}.", "warning")
+            continue
         if entry["id_orgao"] not in all_id_orgaos:
-            raise ValueError(f"ID {entry['id_orgao']} not found in Firestore.")
+            log(f"ID {entry['id_orgao']} not found in Firestore for realizacao {data}.", "warning")
+            continue
         if entry["id_programa"] not in all_id_programas:
             batch.set(
                 db.collection("programa").document(entry["id_programa"]),
@@ -212,6 +212,7 @@ def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
                 {"nome": to_camel_case(entry["id_tema"])},
             )
             batch_len += 1
+        ok_entries.append(entry)
         if batch_len > 0:
             batch.commit()
             batch = db.batch()
@@ -224,7 +225,7 @@ def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
     # `realizacao_tema` collections. These collections will have the `realizacao_id` and the
     # respective `id_orgao`, `id_programa` and `id_tema`.
     batch = db.batch()
-    for entry in data:
+    for entry in ok_entries:
         # Add document to `realizacao` collection
         id_realizacao = to_snake_case(entry["nome"])
         data = {
