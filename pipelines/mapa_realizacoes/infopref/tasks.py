@@ -9,10 +9,10 @@ from firebase_admin import credentials, firestore
 from google.cloud.firestore import GeoPoint
 from google.cloud.firestore_v1.client import Client as FirestoreClient
 from googlemaps import Client as GoogleMapsClient
-from prefect import task
 from prefeitura_rio.pipelines_utils.infisical import get_secret
 
 from pipelines.mapa_realizacoes.infopref.utils import to_camel_case, to_snake_case
+from pipelines.utils import authenticated_task as task
 
 
 @task
