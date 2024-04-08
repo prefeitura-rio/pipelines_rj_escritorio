@@ -242,20 +242,45 @@ def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
             "nome": entry["nome"],
         }
         batch.set(db.collection("realizacao").document(id_realizacao), data)
+        batch_len += 1
+
+        if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
+            batch.commit()
+            batch = db.batch()
+            batch_len = 0
 
         # Add document to `realizacao_orgao` collection
         id_document = f"{id_realizacao}__{entry['id_orgao']}"
         data = {"id_realizacao": id_realizacao, "id_orgao": entry["id_orgao"]}
         batch.set(db.collection("realizacao_orgao").document(id_document), data)
+        batch_len += 1
+
+        if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
+            batch.commit()
+            batch = db.batch()
+            batch_len = 0
 
         # Add document to `realizacao_programa` collection
         id_document = f"{id_realizacao}__{entry['id_programa']}"
         data = {"id_realizacao": id_realizacao, "id_programa": entry["id_programa"]}
         batch.set(db.collection("realizacao_programa").document(id_document), data)
+        batch_len += 1
+
+        if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
+            batch.commit()
+            batch = db.batch()
+            batch_len = 0
 
         # Add document to `realizacao_tema` collection
         id_document = f"{id_realizacao}__{entry['id_tema']}"
         data = {"id_realizacao": id_realizacao, "id_tema": entry["id_tema"]}
         batch.set(db.collection("realizacao_tema").document(id_document), data)
+        batch_len += 1
 
-    batch.commit()
+        if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
+            batch.commit()
+            batch = db.batch()
+            batch_len = 0
+
+    if batch_len > 0:
+        batch.commit()
