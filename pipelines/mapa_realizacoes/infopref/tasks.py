@@ -12,7 +12,12 @@ from googlemaps import Client as GoogleMapsClient
 from prefeitura_rio.pipelines_utils.infisical import get_secret
 from prefeitura_rio.pipelines_utils.logging import log
 
-from pipelines.mapa_realizacoes.infopref.utils import to_camel_case, to_snake_case
+from pipelines.mapa_realizacoes.infopref.utils import (
+    get_bairro_from_lat_long,
+    get_bairros_with_geometry,
+    to_camel_case,
+    to_snake_case,
+)
 from pipelines.utils import authenticated_task as task
 
 
@@ -190,34 +195,64 @@ def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
     # Check if all IDs from the input data are present in Firestore
     batch = db.batch()
     batch_len = 0
+    is_ok = True
     ok_entries = []
+    not_found_bairros = set()
+    not_found_status = set()
+    not_found_orgaos = set()
+    bairros = None
     for entry in data:
-        if entry["id_bairro"] not in all_id_bairros:
-            log(f"ID {entry['id_bairro']} not found in Firestore for realizacao {data}.", "warning")
-            continue
-        if entry["id_status"] not in all_id_status:
-            log(f"ID {entry['id_status']} not found in Firestore for realizacao {data}.", "warning")
-            continue
-        if entry["id_orgao"] not in all_id_orgaos:
-            log(f"ID {entry['id_orgao']} not found in Firestore for realizacao {data}.", "warning")
-            continue
+        is_ok = True
+        if entry["id_bairro"] and entry["id_bairro"] not in all_id_bairros:
+            if not bairros:
+                bairros = get_bairros_with_geometry(db)
+            try:
+                bairro = get_bairro_from_lat_long(
+                    entry["coords"].latitude, entry["coords"].longitude, bairros
+                )
+                id_bairro = to_snake_case(bairro["nome"])
+                entry["id_bairro"] = id_bairro
+            except ValueError:
+                not_found_bairros.add(entry["id_bairro"])
+                is_ok = False
+        if entry["id_status"] and entry["id_status"] not in all_id_status:
+            not_found_status.add(entry["id_status"])
+            is_ok = False
+        if entry["id_orgao"] and entry["id_orgao"] not in all_id_orgaos:
+            not_found_orgaos.add(entry["id_orgao"])
+            is_ok = False
         if entry["id_programa"] not in all_id_programas:
             batch.set(
                 db.collection("programa").document(entry["id_programa"]),
                 {"nome": to_camel_case(entry["id_programa"]), "descricao": ""},
             )
             batch_len += 1
+            if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
+                batch.commit()
+                batch = db.batch()
+                batch_len = 0
         if entry["id_tema"] not in all_id_temas:
             batch.set(
                 db.collection("tema").document(entry["id_tema"]),
                 {"nome": to_camel_case(entry["id_tema"])},
             )
             batch_len += 1
-        ok_entries.append(entry)
+            if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
+                batch.commit()
+                batch = db.batch()
+                batch_len = 0
+        if is_ok:
+            ok_entries.append(entry)
         if batch_len > 0:
             batch.commit()
             batch = db.batch()
             batch_len = 0
+
+    log(f"Length of all entries: {len(data)}")
+    log(f"Length of ok entries: {len(ok_entries)}")
+    log(f"Could not find the following bairros: {not_found_bairros}.", "warning")
+    log(f"Could not find the following status: {not_found_status}.", "warning")
+    log(f"Could not find the following orgaos: {not_found_orgaos}.", "warning")
 
     # Upload data to Firestore. This will be done in a few steps:
     # - First we have to add the document to the `realizacao` collection. This will have all the
@@ -228,7 +263,7 @@ def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
     batch = db.batch()
     for entry in ok_entries:
         # Add document to `realizacao` collection
-        id_realizacao = to_snake_case(entry["nome"])
+        id_realizacao = to_snake_case(entry["nome"]).replace("/", "-")
         data = {
             "cariocas_atendidos": entry["cariocas_atendidos"],
             "coords": entry["coords"],
@@ -251,37 +286,40 @@ def upload_infopref_data_to_firestore(data: List[Dict[str, Any]]) -> None:
             batch_len = 0
 
         # Add document to `realizacao_orgao` collection
-        id_document = f"{id_realizacao}__{entry['id_orgao']}"
-        data = {"id_realizacao": id_realizacao, "id_orgao": entry["id_orgao"]}
-        batch.set(db.collection("realizacao_orgao").document(id_document), data)
-        batch_len += 1
+        if entry["id_orgao"]:
+            id_document = f"{id_realizacao}__{entry['id_orgao']}"
+            data = {"id_realizacao": id_realizacao, "id_orgao": entry["id_orgao"]}
+            batch.set(db.collection("realizacao_orgao").document(id_document), data)
+            batch_len += 1
 
-        if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
-            batch.commit()
-            batch = db.batch()
-            batch_len = 0
+            if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
+                batch.commit()
+                batch = db.batch()
+                batch_len = 0
 
         # Add document to `realizacao_programa` collection
-        id_document = f"{id_realizacao}__{entry['id_programa']}"
-        data = {"id_realizacao": id_realizacao, "id_programa": entry["id_programa"]}
-        batch.set(db.collection("realizacao_programa").document(id_document), data)
-        batch_len += 1
+        if entry["id_programa"]:
+            id_document = f"{id_realizacao}__{entry['id_programa']}"
+            data = {"id_realizacao": id_realizacao, "id_programa": entry["id_programa"]}
+            batch.set(db.collection("realizacao_programa").document(id_document), data)
+            batch_len += 1
 
-        if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
-            batch.commit()
-            batch = db.batch()
-            batch_len = 0
+            if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
+                batch.commit()
+                batch = db.batch()
+                batch_len = 0
 
         # Add document to `realizacao_tema` collection
-        id_document = f"{id_realizacao}__{entry['id_tema']}"
-        data = {"id_realizacao": id_realizacao, "id_tema": entry["id_tema"]}
-        batch.set(db.collection("realizacao_tema").document(id_document), data)
-        batch_len += 1
+        if entry["id_tema"]:
+            id_document = f"{id_realizacao}__{entry['id_tema']}"
+            data = {"id_realizacao": id_realizacao, "id_tema": entry["id_tema"]}
+            batch.set(db.collection("realizacao_tema").document(id_document), data)
+            batch_len += 1
 
-        if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
-            batch.commit()
-            batch = db.batch()
-            batch_len = 0
+            if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
+                batch.commit()
+                batch = db.batch()
+                batch_len = 0
 
     if batch_len > 0:
         batch.commit()
