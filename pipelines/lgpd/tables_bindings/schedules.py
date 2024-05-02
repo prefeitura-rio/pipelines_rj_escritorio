@@ -17,8 +17,9 @@ update_tables_bindings_schedule = Schedule(
             ],
             parameter_defaults={
                 "credentials_secret_name": "LGPD_SERVICE_ACCOUNT_B64",
-                "sheet_name": "tables_bindings",
-                "spreadsheet_url": "https://docs.google.com/spreadsheets/d/16gVrhfwMl1TUZ_jbWdNKw1xcNMUTNwtkJCfg7nW52go/edit#gid=0",  # noqa
+                "dataset_id": "lgpd",
+                "dump_mode": "append",
+                "table_id": "tables_bindings",
             },
         ),
     ]
