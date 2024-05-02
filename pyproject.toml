@@ -24,6 +24,7 @@ pillow = "^10.1.0"
 shapely = "^2.0.2"
 h3 = "^3.7.6"
 google-cloud-asset = "^3.24.1"
+httpx = "^0.27.0"
 
 [tool.poetry.group.dev]
 optional = true
