@@ -17,7 +17,7 @@ update_tables_bindings_schedule = Schedule(
             ],
             parameter_defaults={
                 "credentials_secret_name": "LGPD_SERVICE_ACCOUNT_B64",
-                "dataset_id": "lgpd",
+                "dataset_id": "datalake_gestao",
                 "dump_mode": "append",
                 "table_id": "tables_bindings",
             },
