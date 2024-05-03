@@ -24,7 +24,7 @@ with Flow(
     name="LGPD - Histórico de concessão de permissões no IAM",
     state_handlers=[handler_inject_bd_credentials],
     skip_if_running=True,
-    parallelism=5,
+    parallelism=30,
 ) as rj_escritorio__lgpd__auditlog__flow:
     # Parameters
     credentials_secret_name = Parameter("credentials_secret_name")

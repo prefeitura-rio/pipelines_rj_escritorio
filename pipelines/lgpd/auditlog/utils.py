@@ -60,6 +60,7 @@ def parse_iam_audit_logs(entries: list) -> pd.DataFrame:
         timestamp = entry.timestamp
         response = payload.get("response")
         if response is None:
+            # TODO: Why is this happening?
             log("Response is None", level="warning")
             continue
         for binding in response.get("bindings", []):

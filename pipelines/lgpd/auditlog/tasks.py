@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 from prefect import task
@@ -10,7 +10,11 @@ from redis import Redis
 from pipelines.lgpd.auditlog.utils import extract_iam_audit_logs, parse_iam_audit_logs
 
 
-@task(checkpoint=False)
+@task(
+    checkpoint=False,
+    max_retries=5,
+    retry_delay=timedelta(seconds=30),
+)
 def get_auditlog_dataframe(
     project_id: str,
     credentials_secret_name: str,
