@@ -18,6 +18,7 @@ def extract_iam_audit_logs(
     )
     filter_ += f" AND timestamp>=\"{start.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}\""
     filter_ += f" AND timestamp<=\"{end.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}\""
+    log(f"Project: {project_id}")
     log(f"Filter: {filter_}")
 
     response = client.list_entries(resource_names=[parent], filter_=filter_)
@@ -58,6 +59,9 @@ def parse_iam_audit_logs(entries: list) -> pd.DataFrame:
         resource = payload.get("resourceName")
         timestamp = entry.timestamp
         response = payload.get("response")
+        if response is None:
+            log("Response is None", level="warning")
+            continue
         for binding in response.get("bindings", []):
             role = binding.get("role")
             members = binding.get("members", [])
