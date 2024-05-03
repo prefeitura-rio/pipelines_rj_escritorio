@@ -35,7 +35,7 @@ def get_last_execution_datetime(redis_url: str, key: str) -> datetime:
 
 @task(checkpoint=False)
 def get_now() -> datetime:
-    return datetime.now().isoformat()
+    return datetime.now()
 
 
 @task
