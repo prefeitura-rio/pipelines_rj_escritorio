@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pandas as pd
 from google.cloud import logging_v2
+from prefeitura_rio.pipelines_utils.logging import log
 
 from pipelines.lgpd.tables_bindings.utils import get_gcp_credentials
 
@@ -17,6 +18,7 @@ def extract_iam_audit_logs(
     )
     filter_ += f" AND timestamp>=\"{start.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}\""
     filter_ += f" AND timestamp<=\"{end.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}\""
+    log(f"Filter: {filter_}")
 
     response = client.list_entries(resource_names=[parent], filter_=filter_)
 
@@ -24,6 +26,7 @@ def extract_iam_audit_logs(
     for entry in response:
         entries.append(entry)
 
+    log(f"Found {len(entries)} entries")
     return entries
 
 

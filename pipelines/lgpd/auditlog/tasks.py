@@ -4,6 +4,7 @@ from datetime import datetime
 import pandas as pd
 from prefect import task
 from prefeitura_rio.pipelines_utils.infisical import get_secret
+from prefeitura_rio.pipelines_utils.logging import log
 from redis import Redis
 
 from pipelines.lgpd.auditlog.utils import extract_iam_audit_logs, parse_iam_audit_logs
@@ -18,6 +19,7 @@ def get_auditlog_dataframe(
 ) -> pd.DataFrame:
     start = start or datetime(2021, 1, 1)
     end = end or datetime.now()
+    log(f"Getting audit logs from {start} to {end}")
     entries = extract_iam_audit_logs(
         project_id=project_id, secret_name=credentials_secret_name, start=start, end=end
     )
@@ -29,7 +31,9 @@ def get_last_execution_datetime(redis_url: str, key: str) -> datetime:
     redis = Redis.from_url(redis_url)
     last_execution = redis.get(key)
     if last_execution:
-        return datetime.fromisoformat(last_execution.decode())
+        ret_value = datetime.fromisoformat(last_execution.decode())
+        log(f"Last execution: {ret_value}")
+        return ret_value
     return None
 
 
