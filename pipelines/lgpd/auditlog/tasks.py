@@ -12,8 +12,8 @@ from pipelines.lgpd.auditlog.utils import extract_iam_audit_logs, parse_iam_audi
 
 @task(
     checkpoint=False,
-    max_retries=5,
-    retry_delay=timedelta(seconds=30),
+    max_retries=10,
+    retry_delay=timedelta(minutes=5),
 )
 def get_auditlog_dataframe(
     project_id: str,
