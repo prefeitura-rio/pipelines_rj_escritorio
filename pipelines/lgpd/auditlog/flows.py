@@ -7,6 +7,7 @@ from prefeitura_rio.pipelines_utils.custom import Flow
 from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
 
 from pipelines.constants import constants
+from pipelines.lgpd.auditlog.schedules import update_audit_logs_schedule
 from pipelines.lgpd.auditlog.tasks import (
     get_auditlog_dataframe,
     get_last_execution_datetime,
@@ -63,5 +64,4 @@ rj_escritorio__lgpd__auditlog__flow.run_config = KubernetesRun(
     image=constants.DOCKER_IMAGE.value,
     labels=[constants.RJ_ESCRITORIO_AGENT_LABEL.value],
 )
-# TODO: set schedule
-# rj_escritorio__lgpd__auditlog__flow.schedule = update_tables_bindings_schedule
+rj_escritorio__lgpd__auditlog__flow.schedule = update_audit_logs_schedule
