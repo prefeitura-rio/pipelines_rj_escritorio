@@ -85,32 +85,32 @@ with Flow(
     )
 
     upload_cidades_task = upload_infopref_data_to_firestore(
-        data=cidades, db=db, collection="cidades", clear=clear
+        data=cidades, db=db, collection="cidade", clear=clear
     )
     upload_cidades_task.set_upstream(firestore_credentials_task)
 
     upload_orgaos_task = upload_infopref_data_to_firestore(
-        data=orgaos, db=db, collection="orgaos", clear=clear
+        data=orgaos, db=db, collection="orgao", clear=clear
     )
     upload_orgaos_task.set_upstream(firestore_credentials_task)
 
     upload_programas_task = upload_infopref_data_to_firestore(
-        data=programas, db=db, collection="programas", clear=clear
+        data=programas, db=db, collection="programa", clear=clear
     )
     upload_programas_task.set_upstream(firestore_credentials_task)
 
     upload_realizacoes_task = upload_infopref_data_to_firestore(
-        data=realizacoes, db=db, collection="realizacoes", clear=clear
+        data=realizacoes, db=db, collection="realizacao", clear=clear
     )
     upload_realizacoes_task.set_upstream(firestore_credentials_task)
 
     upload_statuses_task = upload_infopref_data_to_firestore(
-        data=statuses, db=db, collection="statuses", clear=clear
+        data=statuses, db=db, collection="status", clear=clear
     )
     upload_statuses_task.set_upstream(firestore_credentials_task)
 
     upload_temas_task = upload_infopref_data_to_firestore(
-        data=temas, db=db, collection="temas", clear=clear
+        data=temas, db=db, collection="tema", clear=clear
     )
     upload_temas_task.set_upstream(firestore_credentials_task)
 

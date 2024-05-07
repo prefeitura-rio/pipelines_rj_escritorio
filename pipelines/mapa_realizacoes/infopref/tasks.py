@@ -78,6 +78,11 @@ def get_infopref_orgao(url_orgao: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_orgao, headers)
     data = []
     for entry in raw_data:
+        entry["nome_extenso"] = (
+            entry["nome_extenso"].replace("/", "")
+            if entry["nome_extenso"]
+            else (entry["nome"].replace("/", "") if entry["nome"] else "")
+        )
         data.append(
             {
                 "id": to_snake_case(entry["nome_extenso"]),
@@ -96,6 +101,7 @@ def get_infopref_programa(url_programa: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_programa, headers)
     data = []
     for entry in raw_data:
+        entry["programa"] = entry["programa"].replace("/", "")
         data.append(
             {
                 "id": to_snake_case(entry["programa"]),
@@ -154,6 +160,7 @@ def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_tema, headers)
     data = []
     for entry in raw_data:
+        entry["nome"] = entry["nome"].replace("/", "")
         data.append(
             {
                 "id": to_snake_case(entry["nome"]),
@@ -163,6 +170,7 @@ def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
                 },
             }
         )
+    return data
 
 
 @task(checkpoint=False)
@@ -298,6 +306,7 @@ def transform_infopref_realizacao_to_firebase(
         else:
             id_cidade = subprefeitura_doc.to_dict()["id_cidade"]
 
+    nome = nome.replace("/", "")
     data = {
         "cariocas_atendidos": cariocas_atendidos,
         "coords": coords,
@@ -316,7 +325,7 @@ def transform_infopref_realizacao_to_firebase(
         "investimento": investimento,
         "nome": nome,
     }
-    return {"id": to_snake_case(nome).replace("/", "-"), "data": data}
+    return {"id": to_snake_case(nome), "data": data}
 
 
 @task
@@ -329,19 +338,33 @@ def upload_infopref_data_to_firestore(
     Args:
         data (List[Dict[str, Any]]): The data.
     """
+    log(f"Uploading {len(data)} documents to collection {collection}.")
     if clear:
         # Delete the collection
         docs = db.collection(collection).stream()
+        batch = db.batch()
+        batch_len = 0
         for doc in docs:
-            doc.reference.delete()
+            batch.delete(doc.reference)
+            batch_len += 1
+            if batch_len >= 450:
+                batch.commit()
+                batch = db.batch()
+                batch_len = 0
+        if batch_len > 0:
+            batch.commit()
     batch = db.batch()
     batch_len = 0
     for entry in data:
         # Add document to collection
         id_ = entry["id"]
         data = entry["data"]
-        batch.set(db.collection(collection).document(id_), data)
-        batch_len += 1
+        try:
+            batch.set(db.collection(collection).document(id_), data)
+            batch_len += 1
+        except ValueError as exc:
+            log(f"Could not upload document {id_}. Reason: {exc}", "error")
+            raise exc
 
         if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
             batch.commit()
