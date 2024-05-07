@@ -20,6 +20,7 @@ from pipelines.mapa_realizacoes.infopref.tasks import (
     get_infopref_tema,
     get_infopref_url,
     load_firestore_credential_to_file,
+    log_task,
     transform_infopref_realizacao_to_firebase,
     upload_infopref_data_to_firestore,
 )
@@ -112,6 +113,14 @@ with Flow(
         data=temas, db=db, collection="temas", clear=clear
     )
     upload_temas_task.set_upstream(firestore_credentials_task)
+
+    log_task_ref = log_task(msg="This is the end.")
+    log_task_ref.set_upstream(upload_cidades_task)
+    log_task_ref.set_upstream(upload_orgaos_task)
+    log_task_ref.set_upstream(upload_programas_task)
+    log_task_ref.set_upstream(upload_realizacoes_task)
+    log_task_ref.set_upstream(upload_statuses_task)
+    log_task_ref.set_upstream(upload_temas_task)
 
 rj_escritorio__mapa_realizacoes__infopref__flow.storage = GCS(constants.GCS_FLOWS_BUCKET.value)
 rj_escritorio__mapa_realizacoes__infopref__flow.run_config = KubernetesRun(

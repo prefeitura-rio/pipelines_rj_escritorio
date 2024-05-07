@@ -213,6 +213,11 @@ def get_bairros_with_geometry(db: FirestoreClient) -> List[Dict[str, Any]]:
     return bairros
 
 
+@task
+def log_task(msg: str) -> None:
+    log(msg)
+
+
 @task(
     max_retries=3,
     retry_delay=timedelta(seconds=5),
