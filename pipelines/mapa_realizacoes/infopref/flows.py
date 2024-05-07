@@ -11,11 +11,16 @@ from pipelines.mapa_realizacoes.infopref.tasks import (
     get_bairros_with_geometry,
     get_firestore_client,
     get_gmaps_key,
-    get_infopref_data,
+    get_infopref_cidade,
     get_infopref_headers,
+    get_infopref_orgao,
+    get_infopref_programa,
+    get_infopref_realizacao_raw,
+    get_infopref_status,
+    get_infopref_tema,
     get_infopref_url,
     load_firestore_credential_to_file,
-    transform_infopref_to_firebase,
+    transform_infopref_realizacao_to_firebase,
     upload_infopref_data_to_firestore,
 )
 
@@ -26,6 +31,7 @@ with Flow(
     parallelism=50,
 ) as rj_escritorio__mapa_realizacoes__infopref__flow:
     # Parameters
+    clear = Parameter("clear", default=True)
     firestore_credentials_secret_name = Parameter(
         "firestore_credentials_secret_name", default="FIRESTORE_CREDENTIALS"
     )
@@ -33,29 +39,79 @@ with Flow(
     infopref_header_token_secret_name = Parameter(
         "infopref_header_token_secret_name", default="INFOPREF_TOKEN"
     )
-    infopref_url_secret_name = Parameter("infopref_url_secret_name", default="INFOPREF_URL")
+    infopref_url_orgao_secret_name = Parameter(
+        "infopref_url_orgao_secret_name", default="INFOPREF_URL_ORGAO"
+    )
+    infopref_url_programa_secret_name = Parameter(
+        "infopref_url_programa_secret_name", default="INFOPREF_URL_PROGRAMA"
+    )
+    infopref_url_realizacao_secret_name = Parameter(
+        "infopref_url_realizacao_secret_name", default="INFOPREF_URL_REALIZACAO"
+    )
+    infopref_url_tema_secret_name = Parameter(
+        "infopref_url_tema_secret_name", default="INFOPREF_URL_TEMA"
+    )
 
     # Tasks
     gmaps_key = get_gmaps_key(secret_name=gmaps_secret_name)
     infopref_headers = get_infopref_headers(token_secret=infopref_header_token_secret_name)
-    infopref_url = get_infopref_url(url_secret=infopref_url_secret_name)
-    infopref_data = get_infopref_data(url=infopref_url, headers=infopref_headers)
+    infopref_url_orgao = get_infopref_url(url_secret=infopref_url_orgao_secret_name)
+    infopref_url_programa = get_infopref_url(url_secret=infopref_url_programa_secret_name)
+    infopref_url_realizacao = get_infopref_url(url_secret=infopref_url_realizacao_secret_name)
+    infopref_url_tema = get_infopref_url(url_secret=infopref_url_tema_secret_name)
+
+    cidades = get_infopref_cidade()
+    orgaos = get_infopref_orgao(url_orgao=infopref_url_orgao, headers=infopref_headers)
+    programas = get_infopref_programa(url_programa=infopref_url_programa, headers=infopref_headers)
+    raw_realizacoes = get_infopref_realizacao_raw(
+        url_realizacao=infopref_url_realizacao, headers=infopref_headers
+    )
+    statuses = get_infopref_status()
+    temas = get_infopref_tema(url_tema=infopref_url_tema, headers=infopref_headers)
+
     firestore_credentials_task = load_firestore_credential_to_file(
         secret_name=firestore_credentials_secret_name
     )
     db = get_firestore_client()
     db.set_upstream(firestore_credentials_task)
     bairros = get_bairros_with_geometry(db=db)
-    transformed_infopref_data = transform_infopref_to_firebase.map(
-        entry=infopref_data,
+
+    realizacoes = transform_infopref_realizacao_to_firebase.map(
+        entry=raw_realizacoes,
         gmaps_key=unmapped(gmaps_key),
         db=unmapped(db),
         bairros=unmapped(bairros),
     )
-    upload_infopref_data_task = upload_infopref_data_to_firestore(
-        data=transformed_infopref_data, db=db
+
+    upload_cidades_task = upload_infopref_data_to_firestore(
+        data=cidades, db=db, collection="cidades", clear=clear
     )
-    upload_infopref_data_task.set_upstream(firestore_credentials_task)
+    upload_cidades_task.set_upstream(firestore_credentials_task)
+
+    upload_orgaos_task = upload_infopref_data_to_firestore(
+        data=orgaos, db=db, collection="orgaos", clear=clear
+    )
+    upload_orgaos_task.set_upstream(firestore_credentials_task)
+
+    upload_programas_task = upload_infopref_data_to_firestore(
+        data=programas, db=db, collection="programas", clear=clear
+    )
+    upload_programas_task.set_upstream(firestore_credentials_task)
+
+    upload_realizacoes_task = upload_infopref_data_to_firestore(
+        data=realizacoes, db=db, collection="realizacoes", clear=clear
+    )
+    upload_realizacoes_task.set_upstream(firestore_credentials_task)
+
+    upload_statuses_task = upload_infopref_data_to_firestore(
+        data=statuses, db=db, collection="statuses", clear=clear
+    )
+    upload_statuses_task.set_upstream(firestore_credentials_task)
+
+    upload_temas_task = upload_infopref_data_to_firestore(
+        data=temas, db=db, collection="temas", clear=clear
+    )
+    upload_temas_task.set_upstream(firestore_credentials_task)
 
 rj_escritorio__mapa_realizacoes__infopref__flow.storage = GCS(constants.GCS_FLOWS_BUCKET.value)
 rj_escritorio__mapa_realizacoes__infopref__flow.run_config = KubernetesRun(

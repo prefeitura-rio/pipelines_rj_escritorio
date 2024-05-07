@@ -5,7 +5,6 @@ from datetime import timedelta
 from typing import Any, Dict, List
 
 import firebase_admin
-import requests
 from firebase_admin import credentials, firestore
 from google.cloud.firestore import GeoPoint
 from google.cloud.firestore_v1.client import Client as FirestoreClient
@@ -16,8 +15,8 @@ from shapely.geometry.multipolygon import MultiPolygon
 from shapely.geometry.polygon import Polygon
 
 from pipelines.mapa_realizacoes.infopref.utils import (
+    fetch_data,
     get_bairro_from_lat_long,
-    to_camel_case,
     to_snake_case,
 )
 from pipelines.utils import authenticated_task as task
@@ -57,25 +56,118 @@ def get_infopref_url(url_secret: str = "INFOPREF_URL") -> str:
     return get_secret(url_secret)[url_secret]
 
 
-@task
-def get_infopref_data(url, headers) -> List[Dict[str, Any]]:
-    """
-    Get the data from the infopref API.
+@task(checkpoint=False)
+def get_infopref_bairro() -> list[dict]:
+    return []  # TODO: Implement (future)
 
-    Args:
-        url (str): The URL.
-        headers (Dict[str, str]): The headers.
 
-    Returns:
-        List[Dict[str, Any]]: The data.
-    """
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    response_json = response.json()
-    if not response_json["status"] == "success":
-        raise ValueError(f"API returned status {response_json['status']}.")
-    data = response_json["data"]
+@task(checkpoint=False)
+def get_infopref_cidade() -> list[dict]:
+    return [
+        {
+            "id": "rio_de_janeiro",
+            "data": {
+                "nome": "Rio de Janeiro",
+            },
+        }
+    ]
+
+
+@task(checkpoint=False)
+def get_infopref_orgao(url_orgao: str, headers: dict) -> list[dict]:
+    raw_data = fetch_data(url_orgao, headers)
+    data = []
+    for entry in raw_data:
+        data.append(
+            {
+                "id": to_snake_case(entry["nome_extenso"]),
+                "data": {
+                    "id_cidade": "rio_de_janeiro",
+                    "nome": entry["nome_extenso"],
+                    "sigla": entry["sigla"],
+                },
+            }
+        )
     return data
+
+
+@task(checkpoint=False)
+def get_infopref_programa(url_programa: str, headers: dict) -> list[dict]:
+    raw_data = fetch_data(url_programa, headers)
+    data = []
+    for entry in raw_data:
+        data.append(
+            {
+                "id": to_snake_case(entry["programa"]),
+                "data": {
+                    "descricao": entry["descricao"],
+                    "id_tema": to_snake_case(entry["tema"]),
+                    "nome": entry["programa"],
+                },
+            }
+        )
+    return data
+
+
+@task(checkpoint=False)
+def get_infopref_realizacao_raw(url_realizacao: str, headers: dict) -> list[dict]:
+    return fetch_data(url_realizacao, headers)
+
+
+@task(checkpoint=False)
+def get_infopref_status() -> list[dict]:
+    return [
+        {
+            "id": "concluído",
+            "data": {
+                "nome": "Concluído",
+            },
+        },
+        {
+            "id": "em_andamento",
+            "data": {
+                "nome": "Em andamento",
+            },
+        },
+        {
+            "id": "em_licitação",
+            "data": {
+                "nome": "Em licitação",
+            },
+        },
+        {
+            "id": "interrompida",
+            "data": {
+                "nome": "Interrompida",
+            },
+        },
+    ]
+
+
+@task(checkpoint=False)
+def get_infopref_subprefeitura() -> list[dict]:
+    return []  # TODO: Implement (future)
+
+
+@task(checkpoint=False)
+def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
+    raw_data = fetch_data(url_tema, headers)
+    data = []
+    for entry in raw_data:
+        data.append(
+            {
+                "id": to_snake_case(entry["nome"]),
+                "data": {
+                    "descricao": entry["descricao"],
+                    "nome": entry["nome"],
+                },
+            }
+        )
+
+
+@task(checkpoint=False)
+def get_infopref_tipo() -> list[dict]:
+    return []  # TODO: Implement (future)
 
 
 @task
@@ -125,7 +217,7 @@ def get_bairros_with_geometry(db: FirestoreClient) -> List[Dict[str, Any]]:
     max_retries=3,
     retry_delay=timedelta(seconds=5),
 )
-def transform_infopref_to_firebase(
+def transform_infopref_realizacao_to_firebase(
     entry: Dict[str, Any], gmaps_key: str, db: FirestoreClient, bairros: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
     """
@@ -137,42 +229,30 @@ def transform_infopref_to_firebase(
     Returns:
         Dict[str, Any]: The transformed entry.
     """
-    # Check if all input keys are present
-    expected_keys = [
-        "populacao_beneficiada",  # future cariocas_atendidos
-        "logradouro",  # we'll need to geolocate this
-        "entrega_projeto",  # future data_fim
-        "inicio_projeto",  # future data_inicio
-        "descricao_projeto",  # future descricao
-        "bairro",  # future id_bairro
-        "status",  # future id_status
-        "titulo",  # future nome and image_folder
-        "investimento",  # future investimento
-        "orgao_extenso",  # future id_orgao
-        "programa",  # future id_programa
-        "tema",  # future id_tema
-    ]
-    for key in expected_keys:
-        if key not in entry:
-            raise ValueError(f"Key {key} not found in entry.")
-
     # Transform fields
     cariocas_atendidos = (
         int(entry["populacao_beneficiada"]) if entry["populacao_beneficiada"] else 0
     )
-    gmaps_client: GoogleMapsClient = GoogleMapsClient(key=gmaps_key)
-    full_address = f"{entry['logradouro']}, {entry['bairro']}, Rio de Janeiro, Brazil"
-    geocode_result = gmaps_client.geocode(full_address)
-    # If we fail to geo-locate the address, we use the neighborhood as a fallback
-    if not geocode_result:
-        log(f"Could not geocode address {full_address}. Falling back to neighborhood.", "warning")
-        full_address = f"{entry['bairro']}, Rio de Janeiro, Brazil"
+    if entry["lat"] and entry["lng"]:
+        latitude = float(entry["lat"])
+        longitude = float(entry["lng"])
+    else:
+        gmaps_client: GoogleMapsClient = GoogleMapsClient(key=gmaps_key)
+        full_address = f"{entry['logradouro']}, {entry['bairro']}, Rio de Janeiro, Brazil"
         geocode_result = gmaps_client.geocode(full_address)
-        # If we still fail, we raise an error
+        # If we fail to geo-locate the address, we use the neighborhood as a fallback
         if not geocode_result:
-            raise ValueError(f"Could not geocode address {full_address}.")
-    latitude = geocode_result[0]["geometry"]["location"]["lat"]
-    longitude = geocode_result[0]["geometry"]["location"]["lng"]
+            log(
+                f"Could not geocode address {full_address}. Falling back to neighborhood.",
+                "warning",
+            )
+            full_address = f"{entry['bairro']}, Rio de Janeiro, Brazil"
+            geocode_result = gmaps_client.geocode(full_address)
+            # If we still fail, we raise an error
+            if not geocode_result:
+                raise ValueError(f"Could not geocode address {full_address}.")
+        latitude = geocode_result[0]["geometry"]["location"]["lat"]
+        longitude = geocode_result[0]["geometry"]["location"]["lng"]
     coords = GeoPoint(latitude, longitude)
     data_fim = entry["entrega_projeto"]
     data_inicio = entry["inicio_projeto"]
@@ -213,7 +293,7 @@ def transform_infopref_to_firebase(
         else:
             id_cidade = subprefeitura_doc.to_dict()["id_cidade"]
 
-    output = {
+    data = {
         "cariocas_atendidos": cariocas_atendidos,
         "coords": coords,
         "data_fim": data_fim,
@@ -231,166 +311,35 @@ def transform_infopref_to_firebase(
         "investimento": investimento,
         "nome": nome,
     }
-    return output
+    return {"id": to_snake_case(nome).replace("/", "-"), "data": data}
 
 
 @task
-def upload_infopref_data_to_firestore(data: List[Dict[str, Any]], db: FirestoreClient) -> None:
+def upload_infopref_data_to_firestore(
+    data: List[Dict[str, Any]], db: FirestoreClient, collection: str, clear: bool = True
+) -> None:
     """
     Upload the infopref data to Firestore.
 
     Args:
         data (List[Dict[str, Any]]): The data.
     """
-    # Get all id_bairro, id_status, id_orgao, id_programa, id_tema from Firestore
-    all_id_bairros = [doc.id for doc in db.collection("bairro").stream()]
-    all_id_cidades = [doc.id for doc in db.collection("cidade").stream()]
-    all_id_orgaos = [doc.id for doc in db.collection("orgao").stream()]
-    all_id_programas = [doc.id for doc in db.collection("programa").stream()]
-    all_id_status = [doc.id for doc in db.collection("status").stream()]
-    all_id_subprefeituras = [doc.id for doc in db.collection("subprefeitura").stream()]
-    all_id_temas = [doc.id for doc in db.collection("tema").stream()]
-
-    # Check if all IDs from the input data are present in Firestore
+    if clear:
+        # Delete the collection
+        db.collection(collection).delete()
     batch = db.batch()
     batch_len = 0
-    is_ok = True
-    ok_entries = []
-    not_found_bairros = {}
-    not_found_cidades = {}
-    not_found_status = {}
-    not_found_subprefeituras = {}
-    not_found_orgaos = {}
     for entry in data:
-        is_ok = True
-        if entry["id_bairro"] not in all_id_bairros:
-            if entry["id_bairro"] not in not_found_bairros:
-                not_found_bairros[entry["id_bairro"]] = 0
-            not_found_bairros[entry["id_bairro"]] += 1
-            is_ok = False
-        if entry["id_cidade"] not in all_id_cidades:
-            if entry["id_cidade"] not in not_found_cidades:
-                not_found_cidades[entry["id_cidade"]] = 0
-            not_found_cidades[entry["id_cidade"]] += 1
-            is_ok = False
-        if entry["id_status"] not in all_id_status:
-            if entry["id_status"] not in not_found_status:
-                not_found_status[entry["id_status"]] = 0
-            not_found_status[entry["id_status"]] += 1
-            is_ok = False
-        if entry["id_subprefeitura"] not in all_id_subprefeituras:
-            if entry["id_subprefeitura"] not in not_found_subprefeituras:
-                not_found_subprefeituras[entry["id_subprefeitura"]] = 0
-            not_found_subprefeituras[entry["id_subprefeitura"]] += 1
-            is_ok = False
-        if entry["id_orgao"] not in all_id_orgaos:
-            if entry["id_orgao"] not in not_found_orgaos:
-                not_found_orgaos[entry["id_orgao"]] = 0
-            not_found_orgaos[entry["id_orgao"]] += 1
-            is_ok = False
-        if entry["id_programa"] not in all_id_programas:
-            batch.set(
-                db.collection("programa").document(entry["id_programa"]),
-                {"nome": to_camel_case(entry["id_programa"]), "descricao": ""},
-            )
-            batch_len += 1
-            if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
-                batch.commit()
-                batch = db.batch()
-                batch_len = 0
-        if entry["id_tema"] not in all_id_temas:
-            batch.set(
-                db.collection("tema").document(entry["id_tema"]),
-                {"nome": to_camel_case(entry["id_tema"])},
-            )
-            batch_len += 1
-            if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
-                batch.commit()
-                batch = db.batch()
-                batch_len = 0
-        if is_ok:
-            ok_entries.append(entry)
-        if batch_len > 0:
-            batch.commit()
-            batch = db.batch()
-            batch_len = 0
-
-    log(f"Length of all entries: {len(data)}")
-    log(f"Length of ok entries: {len(ok_entries)}")
-    log(f"Could not find the following bairros: {not_found_bairros}.", "warning")
-    log(f"Could not find the following cidades: {not_found_cidades}.", "warning")
-    log(f"Could not find the following status: {not_found_status}.", "warning")
-    log(f"Could not find the following subprefeituras: {not_found_subprefeituras}.", "warning")
-    log(f"Could not find the following orgaos: {not_found_orgaos}.", "warning")
-
-    # Upload data to Firestore. This will be done in a few steps:
-    # - First we have to add the document to the `realizacao` collection. This will have all the
-    # fields from the input data except for `id_orgao`, `id_programa` and `id_tema`.
-    # - Then we have to add the document to the `realizacao_orgao`, `realizacao_programa` and
-    # `realizacao_tema` collections. These collections will have the `realizacao_id` and the
-    # respective `id_orgao`, `id_programa` and `id_tema`.
-    batch = db.batch()
-    for entry in ok_entries:
-        # Add document to `realizacao` collection
-        id_realizacao = to_snake_case(entry["nome"]).replace("/", "-")
-        data = {
-            "cariocas_atendidos": entry["cariocas_atendidos"],
-            "coords": entry["coords"],
-            "data_fim": entry["data_fim"],
-            "data_inicio": entry["data_inicio"],
-            "descricao": entry["descricao"],
-            "id_bairro": entry["id_bairro"],
-            "id_cidade": entry["id_cidade"],
-            "id_status": entry["id_status"],
-            "id_subprefeitura": entry["id_subprefeitura"],
-            "id_tipo": entry["id_tipo"],
-            "image_folder": entry["image_folder"],
-            "investimento": entry["investimento"],
-            "nome": entry["nome"],
-        }
-        batch.set(db.collection("realizacao").document(id_realizacao), data)
+        # Add document to collection
+        id_ = entry["id"]
+        data = entry["data"]
+        batch.set(db.collection(collection).document(id_), data)
         batch_len += 1
 
         if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
             batch.commit()
             batch = db.batch()
             batch_len = 0
-
-        # Add document to `realizacao_orgao` collection
-        if entry["id_orgao"]:
-            id_document = f"{id_realizacao}__{entry['id_orgao']}"
-            data = {"id_realizacao": id_realizacao, "id_orgao": entry["id_orgao"]}
-            batch.set(db.collection("realizacao_orgao").document(id_document), data)
-            batch_len += 1
-
-            if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
-                batch.commit()
-                batch = db.batch()
-                batch_len = 0
-
-        # Add document to `realizacao_programa` collection
-        if entry["id_programa"]:
-            id_document = f"{id_realizacao}__{entry['id_programa']}"
-            data = {"id_realizacao": id_realizacao, "id_programa": entry["id_programa"]}
-            batch.set(db.collection("realizacao_programa").document(id_document), data)
-            batch_len += 1
-
-            if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
-                batch.commit()
-                batch = db.batch()
-                batch_len = 0
-
-        # Add document to `realizacao_tema` collection
-        if entry["id_tema"]:
-            id_document = f"{id_realizacao}__{entry['id_tema']}"
-            data = {"id_realizacao": id_realizacao, "id_tema": entry["id_tema"]}
-            batch.set(db.collection("realizacao_tema").document(id_document), data)
-            batch_len += 1
-
-            if batch_len >= 450:  # 500 is the limit for batch writes, we'll use 450 to be safe
-                batch.commit()
-                batch = db.batch()
-                batch_len = 0
 
     if batch_len > 0:
         batch.commit()
