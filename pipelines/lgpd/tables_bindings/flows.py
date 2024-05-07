@@ -12,7 +12,7 @@ from pipelines.lgpd.tables_bindings.tasks import (
     get_project_tables_iam_policies,
     list_projects,
     merge_dataframes,
-    upload_dataframe_to_gsheets,
+    upload_dataframe_to_bigquery,
 )
 
 with Flow(
@@ -23,8 +23,9 @@ with Flow(
 ) as rj_escritorio__lgpd__tables_bindings__flow:
     # Parameters
     credentials_secret_name = Parameter("credentials_secret_name")
-    sheet_name = Parameter("sheet_name")
-    spreadsheet_url = Parameter("spreadsheet_url")
+    dataset_id = Parameter("dataset_id")
+    dump_mode = Parameter("dump_mode", default="append")
+    table_id = Parameter("table_id")
 
     # Flow
     project_ids = list_projects(credentials_secret_name=credentials_secret_name)
@@ -32,11 +33,11 @@ with Flow(
         project_id=project_ids, credentials_secret_name=unmapped(credentials_secret_name)
     )
     merged_dataframe = merge_dataframes(dfs=iam_policies_dataframes)
-    upload_dataframe_to_gsheets(
+    upload_dataframe_to_bigquery(
         dataframe=merged_dataframe,
-        spreadsheet_url=spreadsheet_url,
-        sheet_name=sheet_name,
-        credentials_secret_name=credentials_secret_name,
+        dataset_id=dataset_id,
+        table_id=table_id,
+        dump_mode=dump_mode,
     )
 
 
