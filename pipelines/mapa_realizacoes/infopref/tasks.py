@@ -331,7 +331,9 @@ def upload_infopref_data_to_firestore(
     """
     if clear:
         # Delete the collection
-        db.collection(collection).delete()
+        docs = db.collection(collection).stream()
+        for doc in docs:
+            doc.reference.delete()
     batch = db.batch()
     batch_len = 0
     for entry in data:
