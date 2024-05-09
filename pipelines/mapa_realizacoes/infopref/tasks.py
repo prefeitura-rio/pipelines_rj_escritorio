@@ -22,6 +22,117 @@ from pipelines.mapa_realizacoes.infopref.utils import (
 from pipelines.utils import authenticated_task as task
 
 
+@task(nout=5, checkpoint=False)
+def cleanup_unused(
+    cidades: List[dict],
+    orgaos: List[dict],
+    programas: List[dict],
+    realizacoes: List[dict],
+    statuses: List[dict],
+    temas: List[dict],
+) -> None:
+    """
+    Cleanup unused stuff.
+    """
+    # Iterate over realizacoes and count the number of times each id appears
+    id_cidade = {}
+    id_orgao = {}
+    id_programa = {}
+    id_status = {}
+    id_tema = {}
+    for realizacao in realizacoes:
+        data = realizacao["data"]
+        if data["id_cidade"] not in id_cidade:
+            id_cidade[data["id_cidade"]] = 0
+        id_cidade[data["id_cidade"]] += 1
+        if data["id_orgao"] not in id_orgao:
+            id_orgao[data["id_orgao"]] = 0
+        id_orgao[data["id_orgao"]] += 1
+        if data["id_programa"] not in id_programa:
+            id_programa[data["id_programa"]] = 0
+        id_programa[data["id_programa"]] += 1
+        if data["id_status"] not in id_status:
+            id_status[data["id_status"]] = 0
+        id_status[data["id_status"]] += 1
+        if data["id_tema"] not in id_tema:
+            id_tema[data["id_tema"]] = 0
+        id_tema[data["id_tema"]] += 1
+
+    # Collect the IDs from the original lists
+    possible_id_cidades = [cidade["id"] for cidade in cidades]
+    possible_id_orgaos = [orgao["id"] for orgao in orgaos]
+    possible_id_programas = [programa["id"] for programa in programas]
+    possible_id_statuses = [status["id"] for status in statuses]
+    possible_id_temas = [tema["id"] for tema in temas]
+
+    # Show the IDs that do not exist in the original lists
+    for id_ in id_cidade:
+        if id_ not in possible_id_cidades:
+            log(
+                f"ID {id_} does not exist in the cidades list. Number of occurrences: {id_cidade[id_]}.",  # noqa
+                "warning",
+            )
+    for id_ in id_orgao:
+        if id_ not in possible_id_orgaos:
+            log(
+                f"ID {id_} does not exist in the orgaos list. Number of occurrences: {id_orgao[id_]}.",  # noqa
+                "warning",
+            )
+    for id_ in id_programa:
+        if id_ not in possible_id_programas:
+            log(
+                f"ID {id_} does not exist in the programas list. Number of occurrences: {id_programa[id_]}.",  # noqa
+                "warning",
+            )
+    for id_ in id_status:
+        if id_ not in possible_id_statuses:
+            log(
+                f"ID {id_} does not exist in the statuses list. Number of occurrences: {id_status[id_]}.",  # noqa
+                "warning",
+            )
+    for id_ in id_tema:
+        if id_ not in possible_id_temas:
+            log(
+                f"ID {id_} does not exist in the temas list. Number of occurrences: {id_tema[id_]}.",  # noqa
+                "warning",
+            )
+
+    # Show the IDs that are not being used and remove them from the original lists
+    clean_cidades = []
+    for cidade in cidades:
+        if cidade["id"] not in id_cidade:
+            log(f"ID {cidade['id']} is not being used in the realizacoes list.", "warning")
+        else:
+            clean_cidades.append(cidade)
+    clean_orgaos = []
+    for orgao in orgaos:
+        if orgao["id"] not in id_orgao:
+            log(f"ID {orgao['id']} is not being used in the realizacoes list.", "warning")
+        else:
+            clean_orgaos.append(orgao)
+    clean_programas = []
+    for programa in programas:
+        if programa["id"] not in id_programa:
+            log(f"ID {programa['id']} is not being used in the realizacoes list.", "warning")
+        else:
+            clean_programas.append(programa)
+    clean_statuses = []
+    for status in statuses:
+        if status["id"] not in id_status:
+            log(f"ID {status['id']} is not being used in the realizacoes list.", "warning")
+        else:
+            clean_statuses.append(status)
+    clean_temas = []
+    for tema in temas:
+        if tema["id"] not in id_tema:
+            log(f"ID {tema['id']} is not being used in the realizacoes list.", "warning")
+        else:
+            clean_temas.append(tema)
+
+    # Return the cleaned lists
+    return clean_cidades, clean_orgaos, clean_programas, clean_statuses, clean_temas
+
+
 @task
 def get_gmaps_key(secret_name: str = "GMAPS_KEY") -> str:
     """

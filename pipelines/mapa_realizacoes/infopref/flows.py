@@ -8,6 +8,7 @@ from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_cred
 
 from pipelines.constants import constants
 from pipelines.mapa_realizacoes.infopref.tasks import (
+    cleanup_unused,
     get_bairros_with_geometry,
     get_firestore_client,
     get_gmaps_key,
@@ -84,18 +85,27 @@ with Flow(
         bairros=unmapped(bairros),
     )
 
+    clean_cidades, clean_orgaos, clean_programas, clean_statuses, clean_temas = cleanup_unused(
+        cidades=cidades,
+        orgaos=orgaos,
+        programas=programas,
+        realizacoes=realizacoes,
+        statuses=statuses,
+        temas=temas,
+    )
+
     upload_cidades_task = upload_infopref_data_to_firestore(
-        data=cidades, db=db, collection="cidade", clear=clear
+        data=clean_cidades, db=db, collection="cidade", clear=clear
     )
     upload_cidades_task.set_upstream(firestore_credentials_task)
 
     upload_orgaos_task = upload_infopref_data_to_firestore(
-        data=orgaos, db=db, collection="orgao", clear=clear
+        data=clean_orgaos, db=db, collection="orgao", clear=clear
     )
     upload_orgaos_task.set_upstream(firestore_credentials_task)
 
     upload_programas_task = upload_infopref_data_to_firestore(
-        data=programas, db=db, collection="programa", clear=clear
+        data=clean_programas, db=db, collection="programa", clear=clear
     )
     upload_programas_task.set_upstream(firestore_credentials_task)
 
@@ -105,12 +115,12 @@ with Flow(
     upload_realizacoes_task.set_upstream(firestore_credentials_task)
 
     upload_statuses_task = upload_infopref_data_to_firestore(
-        data=statuses, db=db, collection="status", clear=clear
+        data=clean_statuses, db=db, collection="status", clear=clear
     )
     upload_statuses_task.set_upstream(firestore_credentials_task)
 
     upload_temas_task = upload_infopref_data_to_firestore(
-        data=temas, db=db, collection="tema", clear=clear
+        data=clean_temas, db=db, collection="tema", clear=clear
     )
     upload_temas_task.set_upstream(firestore_credentials_task)
 
