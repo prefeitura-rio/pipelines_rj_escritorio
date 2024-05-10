@@ -43,20 +43,20 @@ def cleanup_unused(
     for realizacao in realizacoes:
         data = realizacao["data"]
         if data["id_cidade"] not in id_cidade:
-            id_cidade[data["id_cidade"]] = 0
-        id_cidade[data["id_cidade"]] += 1
+            id_cidade[data["id_cidade"]] = []
+        id_cidade[data["id_cidade"]].append(realizacao["id"])
         if data["id_orgao"] not in id_orgao:
-            id_orgao[data["id_orgao"]] = 0
-        id_orgao[data["id_orgao"]] += 1
+            id_orgao[data["id_orgao"]] = []
+        id_orgao[data["id_orgao"]].append(realizacao["id"])
         if data["id_programa"] not in id_programa:
-            id_programa[data["id_programa"]] = 0
-        id_programa[data["id_programa"]] += 1
+            id_programa[data["id_programa"]] = []
+        id_programa[data["id_programa"]].append(realizacao["id"])
         if data["id_status"] not in id_status:
-            id_status[data["id_status"]] = 0
-        id_status[data["id_status"]] += 1
+            id_status[data["id_status"]] = []
+        id_status[data["id_status"]].append(realizacao["id"])
         if data["id_tema"] not in id_tema:
-            id_tema[data["id_tema"]] = 0
-        id_tema[data["id_tema"]] += 1
+            id_tema[data["id_tema"]] = []
+        id_tema[data["id_tema"]].append(realizacao["id"])
 
     # Collect the IDs from the original lists
     possible_id_cidades = [cidade["id"] for cidade in cidades]
@@ -69,31 +69,31 @@ def cleanup_unused(
     for id_ in id_cidade:
         if id_ not in possible_id_cidades:
             log(
-                f"ID {id_} does not exist in the cidades list. Number of occurrences: {id_cidade[id_]}.",  # noqa
+                f"ID {id_} does not exist in the cidades list. Occurrences: {id_cidade[id_]}.",
                 "warning",
             )
     for id_ in id_orgao:
         if id_ not in possible_id_orgaos:
             log(
-                f"ID {id_} does not exist in the orgaos list. Number of occurrences: {id_orgao[id_]}.",  # noqa
+                f"ID {id_} does not exist in the orgaos list. Occurrences: {id_orgao[id_]}.",
                 "warning",
             )
     for id_ in id_programa:
         if id_ not in possible_id_programas:
             log(
-                f"ID {id_} does not exist in the programas list. Number of occurrences: {id_programa[id_]}.",  # noqa
+                f"ID {id_} does not exist in the programas list. Occurrences: {id_programa[id_]}.",
                 "warning",
             )
     for id_ in id_status:
         if id_ not in possible_id_statuses:
             log(
-                f"ID {id_} does not exist in the statuses list. Number of occurrences: {id_status[id_]}.",  # noqa
+                f"ID {id_} does not exist in the statuses list. Occurrences: {id_status[id_]}.",
                 "warning",
             )
     for id_ in id_tema:
         if id_ not in possible_id_temas:
             log(
-                f"ID {id_} does not exist in the temas list. Number of occurrences: {id_tema[id_]}.",  # noqa
+                f"ID {id_} does not exist in the temas list. Occurrences: {id_tema[id_]}.",
                 "warning",
             )
 
@@ -101,31 +101,31 @@ def cleanup_unused(
     clean_cidades = []
     for cidade in cidades:
         if cidade["id"] not in id_cidade:
-            log(f"ID {cidade['id']} is not being used in the realizacoes list.", "warning")
+            log(f"Cidade {cidade['id']} is not being used in the realizacoes list.", "warning")
         else:
             clean_cidades.append(cidade)
     clean_orgaos = []
     for orgao in orgaos:
         if orgao["id"] not in id_orgao:
-            log(f"ID {orgao['id']} is not being used in the realizacoes list.", "warning")
+            log(f"Órgão {orgao['id']} is not being used in the realizacoes list.", "warning")
         else:
             clean_orgaos.append(orgao)
     clean_programas = []
     for programa in programas:
         if programa["id"] not in id_programa:
-            log(f"ID {programa['id']} is not being used in the realizacoes list.", "warning")
+            log(f"Programa {programa['id']} is not being used in the realizacoes list.", "warning")
         else:
             clean_programas.append(programa)
     clean_statuses = []
     for status in statuses:
         if status["id"] not in id_status:
-            log(f"ID {status['id']} is not being used in the realizacoes list.", "warning")
+            log(f"Status {status['id']} is not being used in the realizacoes list.", "warning")
         else:
             clean_statuses.append(status)
     clean_temas = []
     for tema in temas:
         if tema["id"] not in id_tema:
-            log(f"ID {tema['id']} is not being used in the realizacoes list.", "warning")
+            log(f"Tema {tema['id']} is not being used in the realizacoes list.", "warning")
         else:
             clean_temas.append(tema)
 
@@ -397,7 +397,6 @@ def transform_infopref_realizacao_to_firebase(
     #   id_subprefeitura and get the id_cidade field
     all_id_bairros = [doc.id for doc in db.collection("bairro").stream()]
     id_subprefeitura: str = None
-    id_cidade: str = None
     if id_bairro not in all_id_bairros:
         try:
             bairro = get_bairro_from_lat_long(coords.latitude, coords.longitude, bairros)
@@ -414,8 +413,6 @@ def transform_infopref_realizacao_to_firebase(
         subprefeitura_doc = db.collection("subprefeitura").document(id_subprefeitura).get()
         if not subprefeitura_doc.exists:
             log(f"Could not find subprefeitura with id {id_subprefeitura}.", "warning")
-        else:
-            id_cidade = subprefeitura_doc.to_dict()["id_cidade"]
 
     nome = nome.replace("/", "")
     data = {
@@ -425,7 +422,7 @@ def transform_infopref_realizacao_to_firebase(
         "data_inicio": data_inicio,
         "descricao": descricao,
         "id_bairro": id_bairro,
-        "id_cidade": id_cidade,
+        "id_cidade": "rio_de_janeiro",
         "id_orgao": id_orgao,
         "id_programa": id_programa,
         "id_status": id_status,

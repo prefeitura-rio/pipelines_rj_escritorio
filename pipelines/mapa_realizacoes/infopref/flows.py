@@ -113,6 +113,7 @@ with Flow(
         data=realizacoes, db=db, collection="realizacao", clear=clear
     )
     upload_realizacoes_task.set_upstream(firestore_credentials_task)
+    upload_realizacoes_task.set_upstream(clean_statuses)
 
     upload_statuses_task = upload_infopref_data_to_firestore(
         data=clean_statuses, db=db, collection="status", clear=clear
