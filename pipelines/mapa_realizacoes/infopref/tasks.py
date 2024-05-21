@@ -155,7 +155,7 @@ def compute_aggregate_data(realizacoes: list[dict]):
             for j in range(4):
                 if i & (1 << j):
                     keys.append(filters[j])
-            key = tuple(keys)
+            key = "___".join(keys) if keys else "all"
             aggregated_data[key]["count"] += 1
             aggregated_data[key]["investment"] += data["investimento"]
 
