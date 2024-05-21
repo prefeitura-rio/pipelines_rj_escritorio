@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+import collections
 import json
 from datetime import timedelta
 from typing import Any, Dict, List
@@ -134,6 +135,36 @@ def cleanup_unused(
 
 
 @task
+def compute_aggregate_data(realizacoes: list[dict]):
+    """
+    Pre-computes aggregated data for Firebase.
+    """
+    aggregated_data = collections.defaultdict(lambda: {"count": 0, "investment": 0})
+    for realizacao in realizacoes:
+        data = realizacao["data"]
+        filters = [
+            ("bairro", data["id_bairro"]),
+            ("programa", data["id_programa"]),
+            ("subprefeitura", data["id_subprefeitura"]),
+            ("tema", data["id_tema"]),
+        ]
+
+        # Generate all combinations of filters
+        for i in range(16):  # 2^4 for 4 filters (on/off)
+            keys = []
+            for j in range(4):
+                if i & (1 << j):
+                    keys.append(filters[j])
+            key = tuple(keys)
+            aggregated_data[key]["count"] += 1
+            aggregated_data[key]["investment"] += data["investimento"]
+
+    # Convert defaultdict to a regular dictionary for JSON serialization
+    aggregated_data = {str(k): v for k, v in aggregated_data.items()}
+    return aggregated_data
+
+
+@task
 def get_gmaps_key(secret_name: str = "GMAPS_KEY") -> str:
     """
     Get the Google Maps API key.
@@ -219,6 +250,7 @@ def get_infopref_programa(url_programa: str, headers: dict) -> list[dict]:
                 "data": {
                     "descricao": entry["descricao"],
                     "id_tema": to_snake_case(entry["tema"]),
+                    "image_url": entry["imagem_url"],
                     "nome": entry["programa"],
                 },
             }
@@ -258,6 +290,12 @@ def get_infopref_status() -> list[dict]:
                 "nome": "Interrompida",
             },
         },
+        {
+            "id": "parado",
+            "data": {
+                "nome": "Parado",
+            },
+        },
     ]
 
 
@@ -277,6 +315,7 @@ def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
                 "id": to_snake_case(entry["nome"]),
                 "data": {
                     "descricao": entry["descricao"],
+                    "image_url": entry["imagem_url"],
                     "nome": entry["nome"],
                 },
             }
@@ -381,9 +420,10 @@ def transform_infopref_realizacao_to_firebase(
     data_fim = entry["entrega_projeto"]
     data_inicio = entry["inicio_projeto"]
     descricao = entry["descricao_projeto"]
+    endereco = entry["logradouro"]
     id_bairro = to_snake_case(entry["bairro"])
     id_status = to_snake_case(entry["status"])
-    image_folder = to_snake_case(entry["titulo"])
+    image_url = entry["imagem_url"]
     investimento = float(entry["investimento"]) if entry["investimento"] else 0
     nome = entry["titulo"]
     id_orgao = to_snake_case(entry["orgao_extenso"])
@@ -421,6 +461,7 @@ def transform_infopref_realizacao_to_firebase(
         "data_fim": data_fim,
         "data_inicio": data_inicio,
         "descricao": descricao,
+        "endereco": endereco,
         "id_bairro": id_bairro,
         "id_cidade": "rio_de_janeiro",
         "id_orgao": id_orgao,
@@ -429,11 +470,56 @@ def transform_infopref_realizacao_to_firebase(
         "id_subprefeitura": id_subprefeitura,
         "id_tema": id_tema,
         "id_tipo": "obra",
-        "image_folder": image_folder,
+        "image_folder": None,  # TODO: deprecate this field
+        "image_url": image_url,
         "investimento": investimento,
         "nome": nome,
     }
     return {"id": to_snake_case(nome), "data": data}
+
+
+@task
+def upload_aggregated_data_to_firestore(
+    data: dict,
+    db: FirestoreClient,
+    collection: str = "aggregated_data",
+    clear: bool = True,
+    n_splits: int = 5,
+) -> None:
+    """
+    Upload the aggregated data to Firestore.
+    """
+    log("Uploading aggregated data to Firestore.")
+    if clear:
+        # Delete the collection
+        docs = db.collection(collection).stream()
+        batch = db.batch()
+        batch_len = 0
+        for doc in docs:
+            batch.delete(doc.reference)
+            batch_len += 1
+            if batch_len >= 450:
+                batch.commit()
+                batch = db.batch()
+                batch_len = 0
+        if batch_len > 0:
+            batch.commit()
+    # Split the data into n_splits parts
+    data_splits = []
+    for i in range(n_splits):
+        data_splits.append({k: v for j, (k, v) in enumerate(data.items()) if j % n_splits == i})
+    batch = db.batch()
+    batch_len = 0
+    for i, data in enumerate(data_splits):
+        doc_ref = db.collection(collection).document(f"summary_{i}")
+        batch.set(doc_ref, data)
+        batch_len += 1
+        if batch_len >= 450:
+            batch.commit()
+            batch = db.batch()
+            batch_len = 0
+    if batch_len > 0:
+        batch.commit()
 
 
 @task
@@ -463,10 +549,21 @@ def upload_infopref_data_to_firestore(
             batch.commit()
     batch = db.batch()
     batch_len = 0
+    unique_titles = {}
     for entry in data:
         # Add document to collection
         id_ = entry["id"]
         data = entry["data"]
+        if collection == "realizacao":
+            title = data["nome"]
+            if title in unique_titles:
+                log(f"Document {title} is duplicated. Renaming", "warning")
+                unique_titles[title] += 1
+                title = f"{title} ({unique_titles[title]})"
+            else:
+                unique_titles[title] = 1
+            data["nome"] = title
+            id_ = to_snake_case(title)
         try:
             batch.set(db.collection(collection).document(id_), data)
             batch_len += 1

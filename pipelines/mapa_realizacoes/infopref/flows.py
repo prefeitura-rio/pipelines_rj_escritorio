@@ -9,6 +9,7 @@ from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_cred
 from pipelines.constants import constants
 from pipelines.mapa_realizacoes.infopref.tasks import (
     cleanup_unused,
+    compute_aggregate_data,
     get_bairros_with_geometry,
     get_firestore_client,
     get_gmaps_key,
@@ -23,6 +24,7 @@ from pipelines.mapa_realizacoes.infopref.tasks import (
     load_firestore_credential_to_file,
     log_task,
     transform_infopref_realizacao_to_firebase,
+    upload_aggregated_data_to_firestore,
     upload_infopref_data_to_firestore,
 )
 
@@ -94,6 +96,11 @@ with Flow(
         temas=temas,
     )
 
+    aggregated_data = compute_aggregate_data(realizacoes=realizacoes)
+
+    upload_aggregated_data_task = upload_aggregated_data_to_firestore(
+        data=aggregated_data, db=db, collection="aggregated_data", clear=clear
+    )
     upload_cidades_task = upload_infopref_data_to_firestore(
         data=clean_cidades, db=db, collection="cidade", clear=clear
     )
@@ -126,6 +133,7 @@ with Flow(
     upload_temas_task.set_upstream(firestore_credentials_task)
 
     log_task_ref = log_task(msg="This is the end.")
+    log_task_ref.set_upstream(upload_aggregated_data_task)
     log_task_ref.set_upstream(upload_cidades_task)
     log_task_ref.set_upstream(upload_orgaos_task)
     log_task_ref.set_upstream(upload_programas_task)
