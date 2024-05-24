@@ -7,7 +7,7 @@ from prefect.schedules.clocks import IntervalClock
 
 from pipelines.constants import constants
 
-update_tables_bindings_schedule = Schedule(
+update_audit_logs_schedule = Schedule(
     clocks=[
         IntervalClock(
             interval=timedelta(days=1),
@@ -19,7 +19,9 @@ update_tables_bindings_schedule = Schedule(
                 "credentials_secret_name": "LGPD_SERVICE_ACCOUNT_B64",
                 "dataset_id": "datalake_gestao",
                 "dump_mode": "append",
-                "table_id": "tables_bindings",
+                "last_execution_redis_key": "lgpd_iam_audit_log_last_execution",
+                "redis_url_secret_name": "LGPD_REDIS_URL",
+                "table_id": "iam_audit_log",
             },
         ),
     ]
