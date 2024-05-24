@@ -20,7 +20,7 @@ models:
   +persist_docs:
     relation: true
     columns: true
-  rj_escritorio:
+  queries:
     dados_mestres:
       +materialized: table
       +schema: dados_mestres

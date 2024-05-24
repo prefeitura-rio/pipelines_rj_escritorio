@@ -59,6 +59,14 @@ SELECT
     WHEN subprefeitura="Tijuca" THEN "Grande Tijuca"
     WHEN subprefeitura="Centro e Centro Histórico" THEN "Centro"
   ELSE subprefeitura END subprefeitura,
+  CASE
+      WHEN subprefeitura = "Centro e Centro Histórico" OR subprefeitura="Benfica" OR nome = "Paquetá"  THEN "Centro"
+      WHEN subprefeitura = "Ilhas do Governador/Fundão/Paquetá" AND nome != "Paquetá" THEN "Zona Norte"
+      WHEN subprefeitura IN ("Tijuca", "Zona Norte") THEN "Zona Norte"
+      WHEN subprefeitura IN ("Barra da Tijuca", "Grande Bangu", "Zona Oeste", "Jacarepaguá") THEN "Zona Oeste"
+      WHEN subprefeitura = "Zona Sul" THEN "Zona Sul"
+      ELSE "Desconhecido"
+  END AS zona,
   area,
   perimetro,
   geometry_wkt,
