@@ -25,6 +25,7 @@ pillow = "^10.1.0"
 shapely = "^2.0.2"
 h3 = "^3.7.6"
 hvac = "0.11.2"
+google-cloud-asset = "^3.24.1"
 
 [tool.poetry.group.dev]
 optional = true
