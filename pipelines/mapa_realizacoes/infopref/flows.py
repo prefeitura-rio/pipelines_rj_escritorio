@@ -4,7 +4,10 @@ from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
 from prefect.utilities.edges import unmapped
 from prefeitura_rio.pipelines_utils.custom import Flow
-from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
+from prefeitura_rio.pipelines_utils.state_handlers import (
+    handler_initialize_sentry,
+    handler_inject_bd_credentials,
+)
 
 from pipelines.constants import constants
 from pipelines.mapa_realizacoes.infopref.tasks import (
@@ -30,7 +33,7 @@ from pipelines.mapa_realizacoes.infopref.tasks import (
 
 with Flow(
     name="Mapa de Realizações - Atualiza banco de dados do Firestore",
-    state_handlers=[handler_inject_bd_credentials],
+    state_handlers=[handler_initialize_sentry, handler_inject_bd_credentials],
     skip_if_running=True,
     parallelism=50,
 ) as rj_escritorio__mapa_realizacoes__infopref__flow:

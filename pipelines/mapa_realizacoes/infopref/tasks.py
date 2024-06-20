@@ -143,18 +143,19 @@ def compute_aggregate_data(realizacoes: list[dict]):
     for realizacao in realizacoes:
         data = realizacao["data"]
         filters = [
-            ("bairro", data["id_bairro"]),
-            ("programa", data["id_programa"]),
-            ("subprefeitura", data["id_subprefeitura"]),
-            ("tema", data["id_tema"]),
+            ("bairro", data["id_bairro"] if data["id_bairro"] else "none"),
+            ("programa", data["id_programa"] if data["id_programa"] else "none"),
+            ("subprefeitura", data["id_subprefeitura"] if data["id_subprefeitura"] else "none"),
+            ("tema", data["id_tema"] if data["id_tema"] else "none"),
         ]
 
         # Generate all combinations of filters
+        log(f"Filters: {filters}")
         for i in range(16):  # 2^4 for 4 filters (on/off)
             keys = []
             for j in range(4):
                 if i & (1 << j):
-                    keys.append(filters[j])
+                    keys.append("__".join(filters[j]))
             key = "___".join(keys) if keys else "all"
             aggregated_data[key]["count"] += 1
             aggregated_data[key]["investment"] += data["investimento"]
@@ -425,7 +426,7 @@ def transform_infopref_realizacao_to_firebase(
     id_status = to_snake_case(entry["status"])
     image_url = entry["imagem_url"]
     investimento = float(entry["investimento"]) if entry["investimento"] else 0
-    nome = entry["titulo"]
+    nome = " ".join(entry["titulo"].split())
     id_orgao = to_snake_case(entry["orgao_extenso"])
     id_programa = to_snake_case(entry["programa"])
     id_tema = to_snake_case(entry["tema"])
