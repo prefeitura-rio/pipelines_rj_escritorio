@@ -426,7 +426,7 @@ def transform_infopref_realizacao_to_firebase(
     id_status = to_snake_case(entry["status"])
     image_url = entry["imagem_url"]
     investimento = float(entry["investimento"]) if entry["investimento"] else 0
-    nome = " ".join(entry["titulo"].split())
+    nome = " ".join(entry["titulo"].split()).strip()
     id_orgao = to_snake_case(entry["orgao_extenso"])
     id_programa = to_snake_case(entry["programa"])
     id_tema = to_snake_case(entry["tema"])
