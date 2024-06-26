@@ -13,6 +13,7 @@ from pipelines.constants import constants
 from pipelines.mapa_realizacoes.infopref.tasks import (
     cleanup_unused,
     compute_aggregate_data,
+    filter_out_nones,
     get_bairros_with_geometry,
     get_firestore_client,
     get_gmaps_key,
@@ -42,6 +43,7 @@ with Flow(
     firestore_credentials_secret_name = Parameter(
         "firestore_credentials_secret_name", default="FIRESTORE_CREDENTIALS"
     )
+    force_pass = Parameter("force_pass", default=False)
     gmaps_secret_name = Parameter("gmaps_secret_name", default="GMAPS_KEY")
     infopref_header_token_secret_name = Parameter(
         "infopref_header_token_secret_name", default="INFOPREF_TOKEN"
@@ -88,18 +90,20 @@ with Flow(
         gmaps_key=unmapped(gmaps_key),
         db=unmapped(db),
         bairros=unmapped(bairros),
+        force_pass=unmapped(force_pass),
     )
+    realizacoes_filtered = filter_out_nones(data=realizacoes)
 
     clean_cidades, clean_orgaos, clean_programas, clean_statuses, clean_temas = cleanup_unused(
         cidades=cidades,
         orgaos=orgaos,
         programas=programas,
-        realizacoes=realizacoes,
+        realizacoes=realizacoes_filtered,
         statuses=statuses,
         temas=temas,
     )
 
-    aggregated_data = compute_aggregate_data(realizacoes=realizacoes)
+    aggregated_data = compute_aggregate_data(realizacoes=realizacoes_filtered)
 
     upload_aggregated_data_task = upload_aggregated_data_to_firestore(
         data=aggregated_data, db=db, collection="aggregated_data", clear=clear
@@ -120,7 +124,7 @@ with Flow(
     upload_programas_task.set_upstream(firestore_credentials_task)
 
     upload_realizacoes_task = upload_infopref_data_to_firestore(
-        data=realizacoes, db=db, collection="realizacao", clear=clear
+        data=realizacoes_filtered, db=db, collection="realizacao", clear=clear
     )
     upload_realizacoes_task.set_upstream(firestore_credentials_task)
     upload_realizacoes_task.set_upstream(clean_statuses)

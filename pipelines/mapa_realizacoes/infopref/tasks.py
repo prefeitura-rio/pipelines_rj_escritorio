@@ -2,6 +2,7 @@
 import base64
 import collections
 import json
+import traceback
 from datetime import timedelta
 from typing import Any, Dict, List
 
@@ -163,6 +164,11 @@ def compute_aggregate_data(realizacoes: list[dict]):
     # Convert defaultdict to a regular dictionary for JSON serialization
     aggregated_data = {str(k): v for k, v in aggregated_data.items()}
     return aggregated_data
+
+
+@task(checkpoint=False)
+def filter_out_nones(data: list) -> list:
+    return [entry for entry in data if entry is not None]
 
 
 @task
@@ -382,7 +388,11 @@ def log_task(msg: str) -> None:
     retry_delay=timedelta(seconds=5),
 )
 def transform_infopref_realizacao_to_firebase(
-    entry: Dict[str, Any], gmaps_key: str, db: FirestoreClient, bairros: List[Dict[str, Any]]
+    entry: Dict[str, Any],
+    gmaps_key: str,
+    db: FirestoreClient,
+    bairros: List[Dict[str, Any]],
+    force_pass: bool = False,
 ) -> Dict[str, Any]:
     """
     Transform the infopref data to the firebase format.
@@ -393,90 +403,98 @@ def transform_infopref_realizacao_to_firebase(
     Returns:
         Dict[str, Any]: The transformed entry.
     """
-    # Transform fields
-    cariocas_atendidos = (
-        int(entry["populacao_beneficiada"]) if entry["populacao_beneficiada"] else 0
-    )
-    if entry["lat"] and entry["lng"]:
-        latitude = float(entry["lat"])
-        longitude = float(entry["lng"])
-    else:
-        gmaps_client: GoogleMapsClient = GoogleMapsClient(key=gmaps_key)
-        full_address = f"{entry['logradouro']}, {entry['bairro']}, Rio de Janeiro, Brazil"
-        geocode_result = gmaps_client.geocode(full_address)
-        # If we fail to geo-locate the address, we use the neighborhood as a fallback
-        if not geocode_result:
-            log(
-                f"Could not geocode address {full_address}. Falling back to neighborhood.",
-                "warning",
-            )
-            full_address = f"{entry['bairro']}, Rio de Janeiro, Brazil"
+    try:
+        # Transform fields
+        cariocas_atendidos = (
+            int(entry["populacao_beneficiada"]) if entry["populacao_beneficiada"] else 0
+        )
+        if entry["lat"] and entry["lng"]:
+            latitude = float(entry["lat"])
+            longitude = float(entry["lng"])
+        else:
+            gmaps_client: GoogleMapsClient = GoogleMapsClient(key=gmaps_key)
+            full_address = f"{entry['logradouro']}, {entry['bairro']}, Rio de Janeiro, Brazil"
             geocode_result = gmaps_client.geocode(full_address)
-            # If we still fail, we raise an error
+            # If we fail to geo-locate the address, we use the neighborhood as a fallback
             if not geocode_result:
-                raise ValueError(f"Could not geocode address {full_address}.")
-        latitude = geocode_result[0]["geometry"]["location"]["lat"]
-        longitude = geocode_result[0]["geometry"]["location"]["lng"]
-    coords = GeoPoint(latitude, longitude)
-    data_fim = entry["entrega_projeto"]
-    data_inicio = entry["inicio_projeto"]
-    descricao = entry["descricao_projeto"]
-    endereco = entry["logradouro"]
-    id_bairro = to_snake_case(entry["bairro"])
-    id_status = to_snake_case(entry["status"])
-    image_url = entry["imagem_url"]
-    investimento = float(entry["investimento"]) if entry["investimento"] else 0
-    nome = " ".join(entry["titulo"].split()).strip()
-    id_orgao = to_snake_case(entry["orgao_extenso"])
-    id_programa = to_snake_case(entry["programa"])
-    id_tema = to_snake_case(entry["tema"])
+                log(
+                    f"Could not geocode address {full_address}. Falling back to neighborhood.",
+                    "warning",
+                )
+                full_address = f"{entry['bairro']}, Rio de Janeiro, Brazil"
+                geocode_result = gmaps_client.geocode(full_address)
+                # If we still fail, we raise an error
+                if not geocode_result:
+                    raise ValueError(f"Could not geocode address {full_address}.")
+            latitude = geocode_result[0]["geometry"]["location"]["lat"]
+            longitude = geocode_result[0]["geometry"]["location"]["lng"]
+        coords = GeoPoint(latitude, longitude)
+        data_fim = entry["entrega_projeto"]
+        data_inicio = entry["inicio_projeto"]
+        descricao = entry["descricao_projeto"]
+        endereco = entry["logradouro"]
+        id_bairro = to_snake_case(entry["bairro"])
+        id_status = to_snake_case(entry["status"])
+        image_url = entry["imagem_url"]
+        investimento = float(entry["investimento"]) if entry["investimento"] else 0
+        nome = " ".join(entry["titulo"].split()).strip()
+        id_orgao = to_snake_case(entry["orgao_extenso"])
+        id_programa = to_snake_case(entry["programa"])
+        id_tema = to_snake_case(entry["tema"])
 
-    # Get fields from related collections
-    # - id_subprefeitura: in the "bairro" collection, find the document that matches the id_bairro
-    #   and get the id_subprefeitura field
-    # - id_cidade: in the "subprefeitura" collection, find the document that matches the
-    #   id_subprefeitura and get the id_cidade field
-    all_id_bairros = [doc.id for doc in db.collection("bairro").stream()]
-    id_subprefeitura: str = None
-    if id_bairro not in all_id_bairros:
-        try:
-            bairro = get_bairro_from_lat_long(coords.latitude, coords.longitude, bairros)
-            id_bairro = to_snake_case(bairro["nome"])
-            if id_bairro not in all_id_bairros:
-                raise ValueError(f"Could not find bairro with id {id_bairro}.")
-            entry["id_bairro"] = id_bairro
-        except ValueError:
-            id_bairro = None
-            log(f"Could not find bairro for ({coords.latitude},{coords.longitude}).", "warning")
-    else:
-        bairro_doc = db.collection("bairro").document(id_bairro).get()
-        id_subprefeitura = bairro_doc.to_dict()["id_subprefeitura"]
-        subprefeitura_doc = db.collection("subprefeitura").document(id_subprefeitura).get()
-        if not subprefeitura_doc.exists:
-            log(f"Could not find subprefeitura with id {id_subprefeitura}.", "warning")
+        # Get fields from related collections
+        # - id_subprefeitura: in the "bairro" collection, find the document that matches the
+        #   id_bairro and get the id_subprefeitura field
+        # - id_cidade: in the "subprefeitura" collection, find the document that matches the
+        #   id_subprefeitura and get the id_cidade field
+        all_id_bairros = [doc.id for doc in db.collection("bairro").stream()]
+        id_subprefeitura: str = None
+        if id_bairro not in all_id_bairros:
+            try:
+                bairro = get_bairro_from_lat_long(coords.latitude, coords.longitude, bairros)
+                id_bairro = to_snake_case(bairro["nome"])
+                if id_bairro not in all_id_bairros:
+                    raise ValueError(f"Could not find bairro with id {id_bairro}.")
+                entry["id_bairro"] = id_bairro
+            except ValueError:
+                id_bairro = None
+                log(f"Could not find bairro for ({coords.latitude},{coords.longitude}).", "warning")
+        else:
+            bairro_doc = db.collection("bairro").document(id_bairro).get()
+            id_subprefeitura = bairro_doc.to_dict()["id_subprefeitura"]
+            subprefeitura_doc = db.collection("subprefeitura").document(id_subprefeitura).get()
+            if not subprefeitura_doc.exists:
+                log(f"Could not find subprefeitura with id {id_subprefeitura}.", "warning")
 
-    nome = nome.replace("/", "")
-    data = {
-        "cariocas_atendidos": cariocas_atendidos,
-        "coords": coords,
-        "data_fim": data_fim,
-        "data_inicio": data_inicio,
-        "descricao": descricao,
-        "endereco": endereco,
-        "id_bairro": id_bairro,
-        "id_cidade": "rio_de_janeiro",
-        "id_orgao": id_orgao,
-        "id_programa": id_programa,
-        "id_status": id_status,
-        "id_subprefeitura": id_subprefeitura,
-        "id_tema": id_tema,
-        "id_tipo": "obra",
-        "image_folder": None,  # TODO: deprecate this field
-        "image_url": image_url,
-        "investimento": investimento,
-        "nome": nome,
-    }
-    return {"id": to_snake_case(nome), "data": data}
+        nome = nome.replace("/", "")
+        data = {
+            "cariocas_atendidos": cariocas_atendidos,
+            "coords": coords,
+            "data_fim": data_fim,
+            "data_inicio": data_inicio,
+            "descricao": descricao,
+            "endereco": endereco,
+            "id_bairro": id_bairro,
+            "id_cidade": "rio_de_janeiro",
+            "id_orgao": id_orgao,
+            "id_programa": id_programa,
+            "id_status": id_status,
+            "id_subprefeitura": id_subprefeitura,
+            "id_tema": id_tema,
+            "id_tipo": "obra",
+            "image_folder": None,  # TODO: deprecate this field
+            "image_url": image_url,
+            "investimento": investimento,
+            "nome": nome,
+        }
+        return {"id": to_snake_case(nome), "data": data}
+    except Exception as exc:
+        log("Could not transform entry.")
+        log(f"Raw entry: {entry}")
+        log(traceback.format_exc())
+        if force_pass:
+            return None
+        raise exc
 
 
 @task
