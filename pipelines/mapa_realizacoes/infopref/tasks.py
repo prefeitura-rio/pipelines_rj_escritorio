@@ -404,11 +404,20 @@ def transform_infopref_realizacao_to_firebase(
         Dict[str, Any]: The transformed entry.
     """
     try:
+        # Get title first
+        nome = " ".join(entry["titulo"].split()).strip()
+        nome = nome.replace("/", "")
         # Transform fields
         cariocas_atendidos = (
             int(entry["populacao_beneficiada"]) if entry["populacao_beneficiada"] else 0
         )
-        if entry["lat"] and entry["lng"]:
+        if nome == "Estação Lobo Junior":
+            latitude = -22.829339
+            longitude = -43.271627
+        elif nome == "Estação Baixa do Sapateiro":
+            latitude = -22.859869
+            longitude = -43.247791
+        elif entry["lat"] and entry["lng"]:
             latitude = float(entry["lat"])
             longitude = float(entry["lng"])
         else:
@@ -432,12 +441,12 @@ def transform_infopref_realizacao_to_firebase(
         data_fim = entry["entrega_projeto"]
         data_inicio = entry["inicio_projeto"]
         descricao = entry["descricao_projeto"]
+        destaque = entry["destaque"] == "sim"
         endereco = entry["logradouro"]
         id_bairro = to_snake_case(entry["bairro"])
         id_status = to_snake_case(entry["status"])
         image_url = entry["imagem_url"]
         investimento = float(entry["investimento"]) if entry["investimento"] else 0
-        nome = " ".join(entry["titulo"].split()).strip()
         id_orgao = to_snake_case(entry["orgao_extenso"])
         id_programa = to_snake_case(entry["programa"])
         id_tema = to_snake_case(entry["tema"])
@@ -466,13 +475,13 @@ def transform_infopref_realizacao_to_firebase(
             if not subprefeitura_doc.exists:
                 log(f"Could not find subprefeitura with id {id_subprefeitura}.", "warning")
 
-        nome = nome.replace("/", "")
         data = {
             "cariocas_atendidos": cariocas_atendidos,
             "coords": coords,
             "data_fim": data_fim,
             "data_inicio": data_inicio,
             "descricao": descricao,
+            "destaque": destaque,
             "endereco": endereco,
             "id_bairro": id_bairro,
             "id_cidade": "rio_de_janeiro",
