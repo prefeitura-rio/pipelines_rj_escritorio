@@ -411,6 +411,8 @@ def transform_infopref_realizacao_to_firebase(
         cariocas_atendidos = (
             int(entry["populacao_beneficiada"]) if entry["populacao_beneficiada"] else 0
         )
+        latitude: float = None
+        longitude: float = None
         if nome == "Estação Lobo Junior":
             latitude = -22.829339
             longitude = -43.271627
@@ -419,8 +421,12 @@ def transform_infopref_realizacao_to_firebase(
             longitude = -43.247791
         elif entry["lat"] and entry["lng"]:
             latitude = float(entry["lat"])
+            if latitude <= -90 or latitude >= 90:
+                latitude = None
             longitude = float(entry["lng"])
-        else:
+            if longitude <= -180 or longitude >= 180:
+                longitude = None
+        if latitude is None or longitude is None:
             gmaps_client: GoogleMapsClient = GoogleMapsClient(key=gmaps_key)
             full_address = f"{entry['logradouro']}, {entry['bairro']}, Rio de Janeiro, Brazil"
             geocode_result = gmaps_client.geocode(full_address)
