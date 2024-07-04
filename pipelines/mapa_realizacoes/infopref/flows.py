@@ -27,6 +27,7 @@ from pipelines.mapa_realizacoes.infopref.tasks import (
     get_infopref_url,
     load_firestore_credential_to_file,
     log_task,
+    split_by_gestao,
     transform_infopref_realizacao_to_firebase,
     upload_aggregated_data_to_firestore,
     upload_infopref_data_to_firestore,
@@ -90,9 +91,14 @@ with Flow(
         gmaps_key=unmapped(gmaps_key),
         db=unmapped(db),
         bairros=unmapped(bairros),
+        temas=unmapped(temas),
         force_pass=unmapped(force_pass),
     )
     realizacoes_filtered = filter_out_nones(data=realizacoes)
+
+    realizacoes_nova_gestao, realizacoes_gestoes_antigas = split_by_gestao(
+        realizacoes=realizacoes_filtered
+    )
 
     clean_cidades, clean_orgaos, clean_programas, clean_statuses, clean_temas = cleanup_unused(
         cidades=cidades,
@@ -103,7 +109,7 @@ with Flow(
         temas=temas,
     )
 
-    aggregated_data = compute_aggregate_data(realizacoes=realizacoes_filtered)
+    aggregated_data = compute_aggregate_data(realizacoes=realizacoes_nova_gestao)
 
     upload_aggregated_data_task = upload_aggregated_data_to_firestore(
         data=aggregated_data, db=db, collection="aggregated_data", clear=clear

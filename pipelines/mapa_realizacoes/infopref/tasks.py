@@ -4,7 +4,7 @@ import collections
 import json
 import traceback
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -18,6 +18,7 @@ from shapely.geometry.polygon import Polygon
 
 from pipelines.mapa_realizacoes.infopref.utils import (
     fetch_data,
+    from_to_theme_program,
     get_bairro_from_lat_long,
     to_snake_case,
 )
@@ -383,6 +384,29 @@ def log_task(msg: str) -> None:
     log(msg)
 
 
+@task(nout=2, checkpoint=False)
+def split_by_gestao(
+    realizacoes: List[Dict[str, Any]]
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Split the realizacoes by gestao.
+
+    Args:
+        realizacoes (List[Dict[str, Any]]): The realizacoes.
+
+    Returns:
+        Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]: The realizacoes split by gestao.
+    """
+    new = []
+    old = []
+    for realizacao in realizacoes:
+        if realizacao["data"]["gestao"] == "3":
+            new.append(realizacao)
+        else:
+            old.append(realizacao)
+    return new, old
+
+
 @task(
     max_retries=3,
     retry_delay=timedelta(seconds=5),
@@ -392,6 +416,7 @@ def transform_infopref_realizacao_to_firebase(
     gmaps_key: str,
     db: FirestoreClient,
     bairros: List[Dict[str, Any]],
+    temas: List[dict],
     force_pass: bool = False,
 ) -> Dict[str, Any]:
     """
@@ -449,14 +474,21 @@ def transform_infopref_realizacao_to_firebase(
         descricao = entry["descricao_projeto"]
         destaque = entry["destaque"] == "sim"
         endereco = entry["logradouro"]
+        gestao = entry["gestao"]
         id_bairro = to_snake_case(entry["bairro"])
         id_status = to_snake_case(entry["status"])
         image_url = entry["imagem_url"]
         investimento = float(entry["investimento"]) if entry["investimento"] else 0
         id_orgao = to_snake_case(entry["orgao_extenso"])
-        id_programa = to_snake_case(entry["programa"])
-        id_tema = to_snake_case(entry["tema"])
-
+        if gestao == "3":
+            id_programa = to_snake_case(entry["programa"])
+            id_tema = to_snake_case(entry["tema"])
+        else:
+            tema, programa = from_to_theme_program(
+                entry["tema"], entry["programa"], possible_themes=[t["data"]["nome"] for t in temas]
+            )
+            id_programa = to_snake_case(programa)
+            id_tema = to_snake_case(tema)
         # Get fields from related collections
         # - id_subprefeitura: in the "bairro" collection, find the document that matches the
         #   id_bairro and get the id_subprefeitura field
@@ -489,6 +521,7 @@ def transform_infopref_realizacao_to_firebase(
             "descricao": descricao,
             "destaque": destaque,
             "endereco": endereco,
+            "gestao": gestao,
             "id_bairro": id_bairro,
             "id_cidade": "rio_de_janeiro",
             "id_orgao": id_orgao,
