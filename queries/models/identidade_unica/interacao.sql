@@ -235,7 +235,7 @@ UNION ALL
     SELECT
       id_hash,
       CONCAT(tipo, " CONTRATO") tipo,
-      'fINAL' AS status,
+      'Final' AS status,
       data_fim_contrato AS data_status,
     FROM filter_table
     WHERE data_fim_contrato IS NOT NULL
@@ -347,7 +347,7 @@ filter_table AS (
   SELECT
     id_hash,
     CONCAT(tipo, " CESSAO") tipo,
-    'fINAL' AS status,
+    'Final' AS status,
     data_fim_cessao AS data_status,
   FROM filter_table
   WHERE data_fim_cessao IS NOT NULL
@@ -365,7 +365,7 @@ filter_table AS (
   SELECT
     id_hash,
     CONCAT(tipo, " CONTRATO") tipo,
-    'fINAL' AS status,
+    'Final' AS status,
     data_fim_contrato AS data_status,
   FROM filter_table
   WHERE data_fim_contrato IS NOT NULL
