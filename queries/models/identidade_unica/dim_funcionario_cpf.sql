@@ -2,8 +2,8 @@
     materialized="table"
 ) }}
 
-SELECT 
-    DISTINCT 
+SELECT
+    DISTINCT
     cpf,
     SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(cpf), r'\.0$', '') AS STRING)) AS id_hash,
     numfunc AS id_funcionario, -- TODO: confirmar se numfunc é o id_funcionario,
@@ -12,8 +12,8 @@ FROM `rj-smfp.recursos_humanos_ergon.fita_banco`
 
 UNION ALL
 
-SELECT 
-    DISTINCT 
+SELECT
+    DISTINCT
     id_cpf,
     SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(id_cpf), r'\.0$', '') AS STRING)) AS id_hash,
     id_funcionario, -- TODO: confirmar se numfunc é o id_funcionario,
