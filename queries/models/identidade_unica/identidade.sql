@@ -262,3 +262,42 @@ UNION ALL
   FROM `rj-smfp.compras_materiais_servicos_sigma_staging.fornecedor` forn
   INNER JOIN UltimaDataPorCPF ON UltimaDataPorCPF.max_data_particao = forn.data_ultima_atualizacao
 )
+
+UNION ALL
+
+(
+  WITH union_tables AS
+    (SELECT
+      DISTINCT
+      cpf,
+      SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(cpf), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
+    FROM `rj-chatbot-dev.dialogflowcx.fim_conversas`
+    WHERE cpf IS NOT NULL
+
+    UNION ALL
+
+    SELECT
+      DISTINCT
+      cpf,
+      SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(cpf), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
+    FROM `rj-chatbot-dev.dialogflowcx.fim_conversas_da`
+    WHERE cpf IS NOT NULL)
+
+  SELECT 
+    DISTINCT
+      cpf,
+      id_hash,
+      CAST(NULL AS STRING) nome,
+      CAST(NULL AS STRING) AS genero,
+      CAST(NULL AS DATE) AS data_nascimento,
+      CAST(NULL AS STRING) AS naturalidade,
+      CAST(NULL AS STRING) AS nacionalidade,
+      CAST(NULL AS STRING) AS raca_cor,
+      CAST(NULL AS STRING) AS deficiencia,
+      CAST(NULL AS STRING) AS bolsa_familia,
+      CAST(NULL AS STRING) AS endereco,
+      CAST(NULL AS STRING) AS bairro,
+      CAST(NULL AS STRING) AS municipio,
+      CAST(NULL AS STRING) AS cep,
+  FROM union_tables
+)

@@ -478,3 +478,31 @@ UNION ALL
       AND cd_movimentacao = "2"
       AND (forn.tipo_cpf_cnpj IS NOT NULL OR fornsv.tipo_cpf_cnpj IS NOT NULL)
 )
+
+UNION ALL
+
+( --Contato via chatbot
+WITH union_tables AS
+  (SELECT
+    DISTINCT
+    SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(cpf), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
+    CONCAT("CONTATO VIA CHATBOT") tipo,
+    'Início' AS status,
+    CAST(request_time AS DATETIME) AS data_status
+  FROM `rj-chatbot-dev.dialogflowcx.fim_conversas`
+  WHERE cpf IS NOT NULL
+
+  UNION ALL
+
+  SELECT
+    DISTINCT
+    SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(cpf), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
+    CONCAT("CONTATO VIA CHATBOT") tipo,
+    'Início' AS status,
+    CAST(request_time AS DATETIME) AS data_status
+  FROM `rj-chatbot-dev.dialogflowcx.fim_conversas_da`
+  WHERE cpf IS NOT NULL)
+
+SELECT DISTINCT *
+FROM union_tables
+)
