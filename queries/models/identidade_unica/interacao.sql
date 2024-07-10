@@ -474,7 +474,7 @@ UNION ALL
       AND fornsv.tipo_cpf_cnpj = "F"
     LEFT JOIN `rj-smfp.compras_materiais_servicos_sigma_staging.fornecedor` forn on forn.cpf_cnpj = mov.cnpj_fornecedor
       AND forn.tipo_cpf_cnpj = "F"
-    WHERE data_nota_fiscal IS NOT NULL 
+    WHERE data_nota_fiscal IS NOT NULL
       AND cd_movimentacao = "2"
       AND (forn.tipo_cpf_cnpj IS NOT NULL OR fornsv.tipo_cpf_cnpj IS NOT NULL)
 )
