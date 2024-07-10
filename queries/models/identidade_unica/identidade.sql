@@ -57,7 +57,7 @@ UNION ALL
   )
 
     SELECT * EXCEPT (rownumber)
-    FROM UltimaDataPorCPF 
+    FROM UltimaDataPorCPF
     WHERE rownumber = 1
 )
 

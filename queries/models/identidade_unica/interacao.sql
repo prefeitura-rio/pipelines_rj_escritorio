@@ -28,10 +28,10 @@
 UNION ALL
 
 (-- Funcionários PCRJ COMLURB - Afastamento
-WITH 
+WITH
   -- dim AS (
-  --   SELECT 
-  --     DISTINCT 
+  --   SELECT
+  --     DISTINCT
   --     id_cpf AS cpf,
   --     SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(id_cpf), r'\.0$', '') AS STRING)) AS id_hash,
   --     id_funcionario
@@ -78,10 +78,10 @@ WITH
 UNION ALL
 
 ( -- Funcionários PCRJ exceto COMLURB: Afastamento
-  WITH 
+  WITH
   -- dim AS (
-  --   SELECT 
-  --     DISTINCT 
+  --   SELECT
+  --     DISTINCT
   --     cpf,
   --     SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(cpf), r'\.0$', '') AS STRING)) AS id_hash,
   --     numfunc AS id_funcionario -- TODO: confirmar se numfunc é o id_funcionario
@@ -92,7 +92,7 @@ UNION ALL
     SELECT
       DISTINCT
       dim.id_hash,
-      CONCAT("SERVIDOR - LICENCA AFASTAMENTO POR ", afast.id_afastamento) AS tipo, -- TODO: trocar id_afastamento por valor correspondente, aguardando tabela 
+      CONCAT("SERVIDOR - LICENCA AFASTAMENTO POR ", afast.id_afastamento) AS tipo, -- TODO: trocar id_afastamento por valor correspondente, aguardando tabela
       CAST(data_inicio AS DATETIME) data_inicio,
       CAST(data_final AS DATETIME) data_final
     FROM `rj-smfp.recursos_humanos_ergon.funcionario` func
@@ -129,10 +129,10 @@ UNION ALL
 UNION ALL
 
 ( -- Funcionários PCRJ exceto COMLURB: Nomeação, vacância e aposentadoria
-  WITH 
+  WITH
   -- dim AS (
-  --   SELECT 
-  --     DISTINCT 
+  --   SELECT
+  --     DISTINCT
   --     cpf,
   --     SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(cpf), r'\.0$', '') AS STRING)) AS id_hash,
   --     numfunc AS id_funcionario -- TODO: confirmar se numfunc é o id_funcionario
@@ -258,10 +258,10 @@ UNION ALL
 UNION ALL
 
 (-- Funcionários PCRJ COMLURB: Nomeação, vacância e aposentadoria
-  WITH 
+  WITH
 -- dim AS (
---   SELECT 
---     DISTINCT 
+--   SELECT
+--     DISTINCT
 --     id_cpf as cpf,
 --     SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(id_cpf), r'\.0$', '') AS STRING)) AS id_hash,
 --     id_funcionario, -- TODO: confirmar se numfunc é o id_funcionario,
