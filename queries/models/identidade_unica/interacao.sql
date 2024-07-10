@@ -1,15 +1,17 @@
-(  -- Dados alunos escolas
-  SELECT
-    DISTINCT
-    SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(cpf), r'\.0$', '') AS STRING)) AS id_hash,
-    "Participação no sistema escolar" AS tipo,
-    situacao as status,
-    CAST(data_particao AS datetime) AS data_status
-  FROM
-    `rj-sme.educacao_basica_staging.aluno_historico`
-)
+-- CREATE OR REPLACE TABLE `rj-escritorio-dev.identidade_unica.interacao` AS
 
-UNION ALL
+-- (  -- Dados alunos escolas
+--   SELECT
+--     DISTINCT
+--     SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(cpf), r'\.0$', '') AS STRING)) AS id_hash,
+--     "Participação no sistema escolar" AS tipo,
+--     situacao as status,
+--     CAST(data_particao AS datetime) AS data_status
+--   FROM
+--     `rj-sme.educacao_basica_staging.aluno_historico`
+-- )
+
+-- UNION ALL
 
 ( -- CPFs inscritos na dívida ativa
   SELECT
@@ -380,4 +382,99 @@ filter_table AS (
   WHERE data_prorrogacao_contrato IS NOT NULL
 )
 
+)
+
+UNION ALL
+
+(
+  WITH filter_table AS (
+  SELECT
+    DISTINCT
+    SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(cnpj_cpf_favorecido), r'\.0$', '') AS STRING)) AS id_hash,
+    UPPER(tipo_instrumento) tipo_instrumento,
+    CAST(data_inicio_prevista AS DATETIME) data_inicio_prevista,
+    CAST(data_fim_prevista AS DATETIME) data_fim_prevista,
+    CAST(data_assinatura AS DATETIME) data_assinatura
+  FROM `rj-smfp.adm_instrumentos_firmados.instrumento_firmado`
+  WHERE tipo_favorecido = "Pessoa Física"
+)
+    -- Subconsulta para datas de início previsto
+    SELECT
+      id_hash,
+      CONCAT("FIRMADO ", tipo_instrumento) tipo,
+      'Inicio' AS status,
+      data_inicio_prevista AS data_status
+    FROM filter_table
+    WHERE data_inicio_prevista IS NOT NULL
+    UNION ALL
+    -- Subconsulta para datas de fim previsto
+    SELECT
+      id_hash,
+      CONCAT("FIRMADO ", tipo_instrumento) tipo,
+      'Final' AS status,
+      data_fim_prevista AS data_status
+    FROM filter_table
+    WHERE data_fim_prevista IS NOT NULL
+)
+
+UNION ALL
+
+(
+  WITH filter_table AS (
+    SELECT
+      DISTINCT
+      SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(cpf_cnpj), r'\.0$', '') AS STRING)) AS id_hash,
+      CONCAT("SANCAO POR ", UPPER(descricao_sancao)) tipo,
+      CAST(data_sancao AS DATETIME) data_sancao,
+      CAST(data_extincao_sancao AS DATETIME) data_extincao_sancao,
+    FROM `rj-smfp.adm_orcamento_sigma.sancao_fornecedor`
+    WHERE tipo_documento = "CPF"
+ )
+
+(
+  -- Subconsulta para datas de início
+  SELECT
+    id_hash,
+    tipo,
+    'Inicio' AS status,
+    data_sancao AS data_status
+  FROM filter_table
+  WHERE data_sancao IS NOT NULL
+  UNION ALL
+  -- Subconsulta para datas de fim previsto
+  SELECT
+    id_hash,
+    tipo,
+    'Final' AS status,
+    data_extincao_sancao AS data_status
+  FROM filter_table
+  WHERE data_extincao_sancao IS NOT NULL
+)
+)
+
+UNION ALL
+
+(
+  SELECT
+      SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(cnpj_fornecedor), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
+      CONCAT("COMPRA DE MATERIAL") tipo,
+      'Início' AS status,
+      CAST(
+        CONCAT(
+          SUBSTRING(data_nota_fiscal, 1, 4),
+          '-',
+          SUBSTRING(data_nota_fiscal, 5, 2),
+          '-',
+          SUBSTRING(data_nota_fiscal, 7, 2),
+          ' 00:00:00'
+        ) AS DATETIME
+    ) AS data_status
+    FROM `rj-smfp.compras_materiais_servicos_sigma_staging.movimentacao` mov
+    LEFT JOIN `rj-smfp.compras_materiais_servicos_sigma_staging.fornecedor_sem_vinculo` fornsv on fornsv.cpf_cnpj = mov.cnpj_fornecedor
+      AND fornsv.tipo_cpf_cnpj = "F"
+    LEFT JOIN `rj-smfp.compras_materiais_servicos_sigma_staging.fornecedor` forn on forn.cpf_cnpj = mov.cnpj_fornecedor
+      AND forn.tipo_cpf_cnpj = "F"
+    WHERE data_nota_fiscal IS NOT NULL 
+      AND cd_movimentacao = "2"
+      AND (forn.tipo_cpf_cnpj IS NOT NULL OR fornsv.tipo_cpf_cnpj IS NOT NULL)
 )

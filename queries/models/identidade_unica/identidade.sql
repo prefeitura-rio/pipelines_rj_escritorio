@@ -1,3 +1,4 @@
+-- CREATE OR REPLACE TABLE `rj-escritorio-dev.identidade_unica.identidade` AS
 ( -- Dados alunos escolas
   WITH UltimaDataPorCPF AS (
     SELECT
@@ -10,7 +11,7 @@
   SELECT
     a.cpf,
     SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(a.cpf), r'\.0$', '') AS STRING)) AS id_hash,
-    a.nome,
+    UPPER(a.nome) AS nome,
     a.sexo genero, -- "Feminino"/"Masculino"
     CAST(a.datanascimento AS DATE) AS data_nascimento,
     UPPER(a.naturalidade) naturalidade,
@@ -35,7 +36,7 @@ UNION ALL
         DISTINCT
         SAFE_CAST(REGEXP_REPLACE(TRIM(da.cpf_cnpj), r'\.0$', '') AS STRING) AS cpf,
         SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(da.cpf_cnpj), r'\.0$', '') AS STRING)) AS id_hash,
-        nome,
+        UPPER(nome) AS nome,
         CAST(NULL AS STRING) AS genero,
         CAST(NULL AS DATE) AS data_nascimento,
         CAST(NULL AS STRING) AS naturalidade,
@@ -152,4 +153,112 @@ UNION ALL
     cep
   FROM
     `rj-smfp.recursos_humanos_ergon_comlurb.funcionario`
+)
+
+UNION ALL
+
+( -- instrumentos firmados
+  SELECT 
+    DISTINCT
+    SAFE_CAST(REGEXP_REPLACE(TRIM(cnpj_cpf_favorecido), r'\.0$', '') AS STRING) AS cpf,
+    SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(cnpj_cpf_favorecido), r'\.0$', '') AS STRING)) AS id_hash,
+    UPPER(nome_favorecido) nome,
+    CAST(NULL AS STRING) AS genero,
+    CAST(NULL AS DATE) AS data_nascimento,
+    CAST(NULL AS STRING) AS naturalidade,
+    CAST(NULL AS STRING) AS nacionalidade,
+    CAST(NULL AS STRING) AS raca_cor,
+    CAST(NULL AS STRING) AS deficiencia,
+    CAST(NULL AS STRING) AS bolsa_familia,
+    CAST(NULL AS STRING) AS endereco,
+    CAST(NULL AS STRING) AS bairro,
+    CAST(NULL AS STRING) AS municipio,
+    CAST(NULL AS STRING) AS cep,
+  FROM `rj-smfp.adm_instrumentos_firmados.instrumento_firmado`
+  WHERE tipo_favorecido = "Pessoa Física"
+)
+
+UNION ALL
+
+(
+  SELECT
+    DISTINCT
+    SAFE_CAST(REGEXP_REPLACE(TRIM(cpf_cnpj), r'\.0$', '') AS STRING) AS cpf,
+    SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(cpf_cnpj), r'\.0$', '') AS STRING)) AS id_hash,
+    UPPER(razao_social) nome,
+    CAST(NULL AS STRING) AS genero,
+    CAST(NULL AS DATE) AS data_nascimento,
+    CAST(NULL AS STRING) AS naturalidade,
+    CAST(NULL AS STRING) AS nacionalidade,
+    CAST(NULL AS STRING) AS raca_cor,
+    CAST(NULL AS STRING) AS deficiencia,
+    CAST(NULL AS STRING) AS bolsa_familia,
+    CAST(NULL AS STRING) AS endereco,
+    CAST(NULL AS STRING) AS bairro,
+    CAST(NULL AS STRING) AS municipio,
+    CAST(NULL AS STRING) AS cep,
+  FROM `rj-smfp.adm_orcamento_sigma.sancao_fornecedor`
+  WHERE tipo_documento = "CPF"
+)
+
+UNION ALL 
+
+(
+  WITH UltimaDataPorCPF AS (
+    SELECT
+      cpf_cnpj,
+      MAX(data_ultima_atualizacao) AS max_data_particao
+    FROM `rj-smfp.compras_materiais_servicos_sigma_staging.fornecedor_sem_vinculo`
+    WHERE tipo_cpf_cnpj = "F"
+    GROUP BY cpf_cnpj
+  )
+  SELECT
+    DISTINCT
+    SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(forn.cpf_cnpj), r'\.0$', ''), r'^0+', '') AS STRING) AS cpf,
+    SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(forn.cpf_cnpj), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
+    UPPER(nome) nome,
+    CAST(NULL AS STRING) AS genero,
+    CAST(NULL AS DATE) AS data_nascimento,
+    CAST(NULL AS STRING) AS naturalidade,
+    CAST(NULL AS STRING) AS nacionalidade,
+    CAST(NULL AS STRING) AS raca_cor,
+    CAST(NULL AS STRING) AS deficiencia,
+    CAST(NULL AS STRING) AS bolsa_familia,
+    CAST(CONCAT(logradouro, numero_porta, complemento) AS STRING) AS endereco,
+    bairro AS bairro,
+    municipio AS municipio,
+    cep AS cep,
+  FROM `rj-smfp.compras_materiais_servicos_sigma_staging.fornecedor_sem_vinculo` forn
+  INNER JOIN UltimaDataPorCPF ON UltimaDataPorCPF.max_data_particao = forn.data_ultima_atualizacao
+)
+
+UNION ALL
+
+(
+  WITH UltimaDataPorCPF AS (
+    SELECT
+      cpf_cnpj,
+      MAX(data_ultima_atualizacao) AS max_data_particao
+    FROM `rj-smfp.compras_materiais_servicos_sigma_staging.fornecedor`
+    WHERE tipo_cpf_cnpj = "F"
+    GROUP BY cpf_cnpj
+  )
+  SELECT
+    DISTINCT
+    SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(forn.cpf_cnpj), r'\.0$', ''), r'^0+', '') AS STRING) AS cpf,
+    SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(forn.cpf_cnpj), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
+    UPPER(razao_social) nome,
+    CAST(NULL AS STRING) AS genero,
+    CAST(NULL AS DATE) AS data_nascimento,
+    CAST(NULL AS STRING) AS naturalidade,
+    CAST(NULL AS STRING) AS nacionalidade,
+    CAST(NULL AS STRING) AS raca_cor,
+    CAST(NULL AS STRING) AS deficiencia,
+    CAST(NULL AS STRING) AS bolsa_familia,
+    CAST(CONCAT(logradouro, numero_porta, complemento) AS STRING) AS endereco,
+    bairro AS bairro,
+    municipio AS municipio,
+    cep AS cep,
+  FROM `rj-smfp.compras_materiais_servicos_sigma_staging.fornecedor` forn
+  INNER JOIN UltimaDataPorCPF ON UltimaDataPorCPF.max_data_particao = forn.data_ultima_atualizacao
 )
