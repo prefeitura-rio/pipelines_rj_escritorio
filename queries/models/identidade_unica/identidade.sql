@@ -158,7 +158,7 @@ UNION ALL
 UNION ALL
 
 ( -- instrumentos firmados
-  SELECT 
+  SELECT
     DISTINCT
     SAFE_CAST(REGEXP_REPLACE(TRIM(cnpj_cpf_favorecido), r'\.0$', '') AS STRING) AS cpf,
     SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(cnpj_cpf_favorecido), r'\.0$', '') AS STRING)) AS id_hash,
@@ -201,7 +201,7 @@ UNION ALL
   WHERE tipo_documento = "CPF"
 )
 
-UNION ALL 
+UNION ALL
 
 (
   WITH UltimaDataPorCPF AS (
