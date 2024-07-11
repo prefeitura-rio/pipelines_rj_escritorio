@@ -506,3 +506,74 @@ WITH union_tables AS
 SELECT DISTINCT *
 FROM union_tables
 )
+
+UNION ALL
+
+(
+  WITH 
+  UltimaDataIdentificacao AS (
+      SELECT
+        id_pessoa,
+        MAX(data_particao) AS max_data_particao
+      FROM `rj-smas.protecao_social_cadunico.identificacao_primeira_pessoa`
+      GROUP BY id_pessoa
+    ),
+  UltimaIdentificacao AS (
+      SELECT
+        id_familia,
+        id_membro_familia,
+        estado_cadastral,
+        data_cadastro,
+        data_ultima_atualizacao,
+      FROM `rj-smas.protecao_social_cadunico.identificacao_primeira_pessoa` pp
+      INNER JOIN UltimaDataIdentificacao ident ON ident.max_data_particao = pp.data_particao
+        AND ident.id_pessoa = pp.id_pessoa
+    ),
+  iteracoes_cadunico AS (
+    SELECT
+      SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(cpf), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
+      MIN(doc.data_particao) AS min_data_particao,
+      MAX(doc.data_particao) AS max_data_particao,
+      MAX(data_cadastro) AS data_cadastro,
+      MAX(data_ultima_atualizacao) AS data_ultima_atualizacao
+    FROM `rj-smas.protecao_social_cadunico.documento_pessoa` doc
+    INNER JOIN UltimaIdentificacao ident ON doc.id_membro_familia = ident.id_membro_familia
+      AND doc.id_familia = ident.id_familia
+    WHERE estado_cadastral != "EXCLUIDO"
+    GROUP BY cpf
+  )
+
+  -- SELECT
+  --   id_hash,
+  --   CONCAT("CADUNICO") tipo,
+  --   'Primeira interacao' AS status,
+  --   CAST(min_data_particao AS DATETIME) AS data_status
+  -- FROM iteracoes_cadunico
+
+  -- UNION ALL -- não faz sentido já que não temos os dados históricos
+
+  SELECT
+    id_hash,
+    CONCAT("CADUNICO") tipo,
+    'Ultima interacao' AS status,
+    CAST(max_data_particao AS DATETIME) AS data_status
+  FROM iteracoes_cadunico
+
+  UNION ALL
+
+  SELECT
+    id_hash,
+    CONCAT("CADUNICO") tipo,
+    'Cadastro' AS status,
+    CAST(data_cadastro AS DATETIME) AS data_status
+  FROM iteracoes_cadunico
+
+  UNION ALL
+
+  SELECT
+    id_hash,
+    CONCAT("CADUNICO") tipo,
+    'Ultima atualizacao' AS status,
+    CAST(data_ultima_atualizacao AS DATETIME) AS data_status
+  FROM iteracoes_cadunico
+)

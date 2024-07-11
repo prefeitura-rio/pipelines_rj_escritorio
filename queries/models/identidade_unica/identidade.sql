@@ -1,34 +1,34 @@
 -- CREATE OR REPLACE TABLE `rj-escritorio-dev.identidade_unica.identidade` AS
-( -- Dados alunos escolas
-  WITH UltimaDataPorCPF AS (
-    SELECT
-      cpf,
-      MAX(data_particao) AS max_data_particao
-    FROM `rj-sme.educacao_basica_staging.aluno_historico`
-    GROUP BY cpf
-  )
+-- ( -- Dados alunos escolas
+--   WITH UltimaDataPorCPF AS (
+--     SELECT
+--       cpf,
+--       MAX(data_particao) AS max_data_particao
+--     FROM `rj-sme.educacao_basica_staging.aluno_historico`
+--     GROUP BY cpf
+--   )
 
-  SELECT
-    a.cpf,
-    SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(a.cpf), r'\.0$', '') AS STRING)) AS id_hash,
-    UPPER(a.nome) AS nome,
-    a.sexo genero, -- "Feminino"/"Masculino"
-    CAST(a.datanascimento AS DATE) AS data_nascimento,
-    UPPER(a.naturalidade) naturalidade,
-    UPPER(a.nacionalidade) nacionalidade,
-    UPPER(a.raca_cor) raca_cor, -- Parda/Preta/Branca/Amarela/Indígena/Sem Informação/Não declarada/
-    UPPER(REGEXP_REPLACE(TRIM(a.deficiencia), r'\*', '')) deficiencia, -- Sem Deficiência	 Deficiência intelectual	 Deficiência física	  Transtorno do espectro autista	*Deficiência múltipla	  Altas habilidades/superdotação	 Deficiência auditiva	 Visão monocular	 Baixa visão	 Surdez	 Cegueira	 Surdocegueira	TGD/Transtornos Invasivos sem outra especificação
-    a.bolsa_familia,
-    UPPER(a.endereco) endereco,
-    UPPER(a.bairro) bairro,
-    CAST(NULL AS STRING) AS municipio,
-    a.cep
-  FROM `rj-sme.educacao_basica_staging.aluno_historico` AS a
-  INNER JOIN UltimaDataPorCPF AS b
-  ON a.cpf = b.cpf AND a.data_particao = b.max_data_particao
-)
+--   SELECT
+--     a.cpf,
+--     SHA512(SAFE_CAST(REGEXP_REPLACE(TRIM(a.cpf), r'\.0$', '') AS STRING)) AS id_hash,
+--     UPPER(a.nome) AS nome,
+--     a.sexo genero, -- "Feminino"/"Masculino"
+--     CAST(a.datanascimento AS DATE) AS data_nascimento,
+--     UPPER(a.naturalidade) naturalidade,
+--     UPPER(a.nacionalidade) nacionalidade,
+--     UPPER(a.raca_cor) raca_cor, -- Parda/Preta/Branca/Amarela/Indígena/Sem Informação/Não declarada/
+--     UPPER(REGEXP_REPLACE(TRIM(a.deficiencia), r'\*', '')) deficiencia, -- Sem Deficiência	 Deficiência intelectual	 Deficiência física	  Transtorno do espectro autista	*Deficiência múltipla	  Altas habilidades/superdotação	 Deficiência auditiva	 Visão monocular	 Baixa visão	 Surdez	 Cegueira	 Surdocegueira	TGD/Transtornos Invasivos sem outra especificação
+--     a.bolsa_familia,
+--     UPPER(a.endereco) endereco,
+--     UPPER(a.bairro) bairro,
+--     CAST(NULL AS STRING) AS municipio,
+--     a.cep
+--   FROM `rj-sme.educacao_basica_staging.aluno_historico` AS a
+--   INNER JOIN UltimaDataPorCPF AS b
+--   ON a.cpf = b.cpf AND a.data_particao = b.max_data_particao
+-- )
 
-UNION ALL
+-- UNION ALL
 
 ( -- CPFs inscritos na dívida ativa
   WITH UltimaDataPorCPF AS (
@@ -321,7 +321,14 @@ WITH UltimaDataPorCPF AS (
   ),
   UltimaIdentificacao AS (
     SELECT
-      *
+      id_familia,
+      id_membro_familia,
+      nome,
+      sexo,
+      raca_cor,
+      data_nascimento,
+      local_nascimento,
+      pais_nascimento,
     FROM `rj-smas.protecao_social_cadunico.identificacao_primeira_pessoa` pp
     INNER JOIN UltimaDataIdentificacao ident ON ident.max_data_particao = pp.data_particao
       AND ident.id_pessoa = pp.id_pessoa
@@ -386,17 +393,17 @@ WITH UltimaDataPorCPF AS (
     SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(doc.cpf), r'\.0$', ''), r'^0+', '') AS STRING) AS cpf,
     SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(doc.cpf), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
     UPPER(ident.nome) nome,
-    sexo AS genero,
-    CAST(data_nascimento AS DATE) AS data_nascimento,
-    UPPER(local_nascimento) AS naturalidade,
-    UPPER(pais_nascimento) AS nacionalidade,
-    raca_cor AS raca_cor,
+    ident.sexo AS genero,
+    CAST(ident.data_nascimento AS DATE) AS data_nascimento,
+    UPPER(ident.local_nascimento) AS naturalidade,
+    UPPER(ident.pais_nascimento) AS nacionalidade,
+    ident.raca_cor AS raca_cor,
     def.deficiencia AS deficiencia,
     CAST(NULL AS STRING) AS bolsa_familia,
-    endereco,
+    control.endereco,
     CAST(NULL AS STRING) AS bairro,
-    municipio AS municipio,
-    cep AS cep,
+    control.municipio AS municipio,
+    control.cep AS cep,
   FROM `rj-smas.protecao_social_cadunico.documento_pessoa` doc
   INNER JOIN UltimaDataPorCPF cpf ON cpf.max_data_particao = doc.data_particao AND cpf.cpf = doc.cpf
   INNER JOIN UltimaIdentificacao ident ON doc.id_membro_familia = ident.id_membro_familia
