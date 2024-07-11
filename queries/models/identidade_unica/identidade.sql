@@ -283,7 +283,7 @@ UNION ALL
     FROM `rj-chatbot-dev.dialogflowcx.fim_conversas_da`
     WHERE cpf IS NOT NULL)
 
-  SELECT 
+  SELECT
     DISTINCT
       cpf,
       id_hash,
@@ -354,7 +354,7 @@ WITH UltimaDataPorCPF AS (
       AND ultimo.id_familia = control.id_familia
   ),
   deficiencia AS (
-    SELECT 
+    SELECT
     ident.id_familia,
     ident.id_membro_familia,
     CASE
@@ -367,7 +367,7 @@ WITH UltimaDataPorCPF AS (
                 IFNULL(CAST(deficiencia_cegueira AS FLOAT64), 0) +
                 IFNULL(CAST(deficiencia_mental AS FLOAT64), 0) +
                 IFNULL(CAST(deficiencia_transtorno_mental AS FLOAT64), 0) +
-                IFNULL(CAST(deficiencia_sindrome_down AS FLOAT64), 0) 
+                IFNULL(CAST(deficiencia_sindrome_down AS FLOAT64), 0)
             ) = 0 THEN "Não especificado"
             WHEN (
                 IFNULL(CAST(deficiencia_surdez_leve AS FLOAT64), 0) +
@@ -377,7 +377,7 @@ WITH UltimaDataPorCPF AS (
                 IFNULL(CAST(deficiencia_cegueira AS FLOAT64), 0) +
                 IFNULL(CAST(deficiencia_mental AS FLOAT64), 0) +
                 IFNULL(CAST(deficiencia_transtorno_mental AS FLOAT64), 0) +
-                IFNULL(CAST(deficiencia_sindrome_down AS FLOAT64), 0) 
+                IFNULL(CAST(deficiencia_sindrome_down AS FLOAT64), 0)
             ) > 0 THEN "Deficiência múltipla"
             WHEN (deficiencia_surdez_profunda IS NOT NULL OR deficiencia_surdez_leve IS NOT NULL) THEN "Deficiência auditiva"
             WHEN (deficiencia_transtorno_mental IS NOT NULL OR deficiencia_mental IS NOT NULL OR deficiencia_sindrome_down IS NOT NULL) THEN "Deficiência intelectual"
@@ -411,5 +411,5 @@ WITH UltimaDataPorCPF AS (
   INNER JOIN UltimoControle control ON control.id_familia = doc.id_familia
   INNER JOIN deficiencia def ON doc.id_membro_familia = def.id_membro_familia
      AND doc.id_familia = def.id_familia
-  
+
 )
