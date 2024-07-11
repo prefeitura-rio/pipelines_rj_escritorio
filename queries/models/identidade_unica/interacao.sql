@@ -510,7 +510,7 @@ FROM union_tables
 UNION ALL
 
 (
-  WITH 
+  WITH
   UltimaDataIdentificacao AS (
       SELECT
         id_pessoa,
