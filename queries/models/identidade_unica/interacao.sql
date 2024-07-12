@@ -106,7 +106,7 @@ UNION ALL
     FROM `rj-smfp.recursos_humanos_ergon.funcionario` func
     -- INNER JOIN dim on func.id_cpf = dim.cpf
     INNER JOIN {{ ref('dim_funcionario_cpf') }} on func.id_cpf = dim.cpf
-    inner join `rj-smfp.recursos_humanos_ergon.licenca_afastamento` afast ON afast.id_funcionario = dim.id_funcionario 
+    inner join `rj-smfp.recursos_humanos_ergon.licenca_afastamento` afast ON afast.id_funcionario = dim.id_funcionario
       AND afast.data_particao >= "2015-01-01" -- TODO: ampliar filtro de data
   )
 
