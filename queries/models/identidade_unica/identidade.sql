@@ -16,7 +16,7 @@ WITH merge_tables AS (
 --     a.cpf,
 --     SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(a.cpf), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
 --     UPPER(a.nome) AS nome,
---     a.sexo genero, -- "Feminino"/"Masculino"
+--     UPPER(a.sexo) genero, -- "Feminino"/"Masculino"
 --     CAST(a.datanascimento AS DATE) AS data_nascimento,
 --     UPPER(a.naturalidade) naturalidade,
 --     UPPER(a.nacionalidade) nacionalidade,
@@ -347,6 +347,7 @@ WITH UltimaDataPorCPF AS (
       data_nascimento,
       local_nascimento,
       pais_nascimento,
+      estado_cadastral,
     FROM `rj-smas.protecao_social_cadunico.identificacao_primeira_pessoa` pp
     INNER JOIN UltimaDataIdentificacao ident ON ident.max_data_particao = pp.data_particao
       AND ident.id_pessoa = pp.id_pessoa
@@ -411,13 +412,13 @@ WITH UltimaDataPorCPF AS (
     SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(doc.cpf), r'\.0$', ''), r'^0+', '') AS STRING) AS cpf,
     SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(doc.cpf), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
     UPPER(ident.nome) nome,
-    ident.sexo AS genero,
+    UPPER(ident.sexo) AS genero,
     CAST(ident.data_nascimento AS DATE) AS data_nascimento,
     UPPER(ident.local_nascimento) AS naturalidade,
     UPPER(ident.pais_nascimento) AS nacionalidade,
     ident.raca_cor AS raca_cor,
     def.deficiencia AS deficiencia,
-    CAST(NULL AS STRING) AS bolsa_familia,
+    CASE WHEN ident.estado_cadastral != "EXCLUIDO" THEN "1" ELSE "0" END AS bolsa_familia,
     control.endereco,
     CAST(NULL AS STRING) AS bairro,
     control.municipio AS municipio,
