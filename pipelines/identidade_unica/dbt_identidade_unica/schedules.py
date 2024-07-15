@@ -21,6 +21,7 @@ from pipelines.constants import constants
 identidade_unica_tables = {
     "identidade": "identidade",
     "interacao": "interacao",
+    "dim_funcionario_cpf": "dim_funcionario_cpf",
 }
 
 identidade_unica_clocks = [
