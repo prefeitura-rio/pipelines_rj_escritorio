@@ -43,3 +43,6 @@ models:
     ai_vision_detection:
       +materialized: table
       +schema: ai_vision_detection
+    identidade_unica:
+      +materialized: table
+      +schema: identidade_unica
