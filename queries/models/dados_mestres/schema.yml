@@ -203,6 +203,8 @@ models :
         description: Geometria do bairro no banco do ArcGIS.
       - name: subprefeitura
         description: Nome da subprefeitura a que pertence o bairro.
+      - name: zona
+        description: Nome da zona a que pertence o bairro.
   - name: subprefeitura
     description: "**Descrição**: Tabela com as regiões da sub-prefeitura do Rio de\
       \ Janeiro.\n**Frequência de atualização**: Mensal\n**Cobertura temporal**: Até\
