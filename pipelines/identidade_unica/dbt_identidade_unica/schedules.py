@@ -25,8 +25,7 @@ identidade_unica_tables = {
 
 identidade_unica_clocks = [
     IntervalClock(
-        # interval=timedelta(days=30),
-        interval=timedelta(hours=1),
+        interval=timedelta(days=30),
         start_date=datetime(2023, 5, 20, 0, 0, tzinfo=pytz.timezone("America/Sao_Paulo"))
         + timedelta(minutes=2 * count),
         labels=[
