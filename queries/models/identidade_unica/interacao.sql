@@ -1,4 +1,5 @@
--- CREATE OR REPLACE TABLE `rj-escritorio-dev.identidade_unica.interacao` AS
+{{ config(materialized='table') }}
+
 WITH merge_tables AS (
 -- (  -- Dados alunos escolas
 --   SELECT

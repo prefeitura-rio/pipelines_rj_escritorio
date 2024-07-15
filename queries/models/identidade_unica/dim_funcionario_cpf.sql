@@ -1,3 +1,6 @@
+
+{{ config(materialized='table') }}
+
 SELECT
     DISTINCT
     SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(cpf), r'\.0$', ''), r'^0+', '') AS STRING) AS cpf,
