@@ -27,7 +27,9 @@ from pipelines.mapa_realizacoes.infopref.tasks import (
     get_infopref_url,
     load_firestore_credential_to_file,
     log_task,
+    merge_lists,
     split_by_gestao,
+    transform_csv_to_pin_only_realizacoes,
     transform_infopref_realizacao_to_firebase,
     upload_aggregated_data_to_firestore,
     upload_infopref_data_to_firestore,
@@ -100,6 +102,38 @@ with Flow(
         realizacoes=realizacoes_filtered
     )
 
+    realizacoes_alarme_sonoro = transform_csv_to_pin_only_realizacoes(
+        csv_url="https://storage.googleapis.com/datario-public/static/alarme_sonoro.csv",
+        id_tema="resiliência_climática",
+        id_programa="sirenes",
+        bairros=bairros,
+        force_pass=force_pass,
+    )
+
+    realizacoes_alertario = transform_csv_to_pin_only_realizacoes(
+        csv_url="https://storage.googleapis.com/datario-public/static/alertario.csv",
+        id_tema="resiliência_climática",
+        id_programa="estações_alerta_rio",
+        bairros=bairros,
+        force_pass=force_pass,
+    )
+
+    realizacoes_alarme_alertario = merge_lists(
+        list_a=realizacoes_alarme_sonoro, list_b=realizacoes_alertario
+    )
+
+    realizacoes_cameras = transform_csv_to_pin_only_realizacoes(
+        csv_url="https://storage.googleapis.com/datario-public/static/cameras.csv",
+        id_tema="resiliência_climática",
+        id_programa="câmeras",
+        bairros=bairros,
+        force_pass=force_pass,
+    )
+
+    realizacoes_pin_only = merge_lists(
+        list_a=realizacoes_alarme_alertario, list_b=realizacoes_cameras
+    )
+
     clean_cidades, clean_orgaos, clean_programas, clean_statuses, clean_temas = cleanup_unused(
         cidades=cidades,
         orgaos=orgaos,
@@ -108,6 +142,41 @@ with Flow(
         statuses=statuses,
         temas=temas,
     )
+
+    all_programas = merge_lists(
+        list_a=clean_programas,
+        list_b=[
+            {
+                "id": "sirenes",
+                "data": {
+                    "descricao": None,
+                    "id_tema": "resiliência_climática",
+                    "image_url": None,
+                    "nome": "Sirenes",
+                },
+            },
+            {
+                "id": "estações_alerta_rio",
+                "data": {
+                    "descricao": None,
+                    "id_tema": "resiliência_climática",
+                    "image_url": None,
+                    "nome": "Estações Alerta Rio",
+                },
+            },
+            {
+                "id": "câmeras",
+                "data": {
+                    "descricao": None,
+                    "id_tema": "resiliência_climática",
+                    "image_url": None,
+                    "nome": "Câmeras",
+                },
+            },
+        ],
+    )
+
+    all_realizacoes = merge_lists(list_a=realizacoes_filtered, list_b=realizacoes_pin_only)
 
     aggregated_data = compute_aggregate_data(realizacoes=realizacoes_nova_gestao)
 
@@ -125,12 +194,12 @@ with Flow(
     upload_orgaos_task.set_upstream(firestore_credentials_task)
 
     upload_programas_task = upload_infopref_data_to_firestore(
-        data=clean_programas, db=db, collection="programa", clear=clear
+        data=all_programas, db=db, collection="programa", clear=clear
     )
     upload_programas_task.set_upstream(firestore_credentials_task)
 
     upload_realizacoes_task = upload_infopref_data_to_firestore(
-        data=realizacoes_filtered, db=db, collection="realizacao", clear=clear
+        data=all_realizacoes, db=db, collection="realizacao", clear=clear
     )
     upload_realizacoes_task.set_upstream(firestore_credentials_task)
     upload_realizacoes_task.set_upstream(clean_statuses)

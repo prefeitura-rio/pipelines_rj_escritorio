@@ -7,6 +7,7 @@ from datetime import timedelta
 from typing import Any, Dict, List, Tuple
 
 import firebase_admin
+import pandas as pd
 from firebase_admin import credentials, firestore
 from google.cloud.firestore import GeoPoint
 from google.cloud.firestore_v1.client import Client as FirestoreClient
@@ -351,6 +352,11 @@ def load_firestore_credential_to_file(secret_name: str = "FIRESTORE_CREDENTIALS"
 
 
 @task(checkpoint=False)
+def merge_lists(list_a: list, list_b: list) -> list:
+    return list_a + list_b
+
+
+@task(checkpoint=False)
 def get_firestore_client() -> FirestoreClient:
     """
     Get the Firestore client.
@@ -407,6 +413,84 @@ def split_by_gestao(
     return new, old
 
 
+@task(checkpoint=False)
+def transform_csv_to_pin_only_realizacoes(
+    csv_url: str,
+    id_tema: str,
+    id_programa: str,
+    bairros: List[Dict[str, Any]],
+    force_pass: bool = False,
+) -> List[Dict[str, Any]]:
+    """
+    Transforms the CSV data to the pin-only realizacoes format.
+    CSV must have three columns: "nome", "latitude" and "longitude".
+
+    Args:
+        csv_url (str): The URL of the CSV file.
+
+    Returns:
+        List[Dict[str, Any]]: The pin-only realizacoes.
+    """
+
+    def parse_single_row(row: pd.Series) -> Dict[str, Any]:
+        try:
+            latitude = row["latitude"]
+            if isinstance(latitude, str):
+                latitude = latitude.replace(",", ".")
+            latitude = float(latitude)
+            longitude = row["longitude"]
+            if isinstance(longitude, str):
+                longitude = longitude.replace(",", ".")
+            longitude = float(longitude)
+            coords = GeoPoint(latitude, longitude)
+            bairro = get_bairro_from_lat_long(coords.latitude, coords.longitude, bairros)
+            id_bairro = to_snake_case(bairro["nome"])
+            nome = " ".join(row["nome"].split()).strip()
+            nome = nome.replace("/", "")
+            data = {
+                "cariocas_atendidos": None,
+                "coords": coords,
+                "data_fim": None,
+                "data_inicio": None,
+                "descricao": None,
+                "destaque": False,
+                "endereco": None,
+                "gestao": "3",
+                "id_bairro": id_bairro,
+                "id_cidade": "rio_de_janeiro",
+                "id_orgao": None,
+                "id_programa": id_programa,
+                "id_status": "concluído",
+                "id_subprefeitura": None,
+                "id_tema": id_tema,
+                "id_tipo": "obra",
+                "image_folder": None,  # TODO: deprecate this field
+                "image_url": None,
+                "investimento": None,
+                "nome": nome,
+            }
+            return {"id": to_snake_case(row["nome"]), "data": data}
+        except Exception as exc:
+            log("Could not parse row.")
+            log(f"Raw row: {row}")
+            log(traceback.format_exc())
+            if force_pass:
+                return None
+            raise exc
+
+    df = pd.read_csv(csv_url)
+    try:
+        assert "nome" in df.columns
+        assert "latitude" in df.columns
+        assert "longitude" in df.columns
+    except AssertionError:
+        raise ValueError("CSV must have 'nome', 'latitude' and 'longitude' columns.")
+
+    ret = [parse_single_row(row) for _, row in df.iterrows()]
+    ret = [entry for entry in ret if entry is not None]
+    return ret
+
+
 @task(
     max_retries=3,
     retry_delay=timedelta(seconds=5),
@@ -445,10 +529,10 @@ def transform_infopref_realizacao_to_firebase(
             latitude = -22.859869
             longitude = -43.247791
         elif entry["lat"] and entry["lng"]:
-            latitude = float(entry["lat"])
+            latitude = float(entry["lat"].replace(",", "."))
             if latitude <= -90 or latitude >= 90:
                 latitude = None
-            longitude = float(entry["lng"])
+            longitude = float(entry["lng"].replace(",", "."))
             if longitude <= -180 or longitude >= 180:
                 longitude = None
         if latitude is None or longitude is None:
