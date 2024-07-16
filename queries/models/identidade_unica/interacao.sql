@@ -20,7 +20,7 @@ WITH merge_tables AS (
     DISTINCT
     SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(cpf_cnpj), r'\.0$', ''), r'^0+', '') AS STRING) AS cpf,
     SHA512(SAFE_CAST(REGEXP_REPLACE(REGEXP_REPLACE(TRIM(cpf_cnpj), r'\.0$', ''), r'^0+', '') AS STRING)) AS id_hash,
-    "Dívida ativa" AS tipo,
+    "DIVIDA ATIVA" AS tipo,
     "Inscrito" as status,
     CAST(data_ultima_atualizacao AS DATETIME) AS data_status
   FROM
@@ -270,7 +270,7 @@ UNION ALL
       cpf,
       id_hash,
       CONCAT(tipo, " CONTRATO") tipo,
-      'PRORROGACAO' AS status,
+      'Prorrogacao' AS status,
       data_prorrogacao_contrato AS data_status,
     FROM filter_table
     WHERE data_prorrogacao_contrato IS NOT NULL
@@ -412,7 +412,7 @@ filter_table AS (
     cpf,
     id_hash,
     CONCAT(tipo, " CONTRATO") tipo,
-    'PRORROGACAO' AS status,
+    'Prorrogacao' AS status,
     data_prorrogacao_contrato AS data_status,
   FROM filter_table
   WHERE data_prorrogacao_contrato IS NOT NULL
