@@ -1,4 +1,4 @@
-name: 'queries'
+name: 'rj_escritorio'
 version: '1.0.0'
 config-version: 2
 
@@ -14,7 +14,6 @@ snapshot-paths: ["snapshots"]
 clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
-
 
 models:
   +persist_docs:
@@ -41,3 +40,6 @@ models:
     ai_vision_detection:
       +materialized: table
       +schema: ai_vision_detection
+    identidade_unica:
+      +materialized: table
+      +schema: identidade_unica
