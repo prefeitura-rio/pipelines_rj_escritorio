@@ -6,7 +6,7 @@ from prefeitura_rio.pipelines_utils.custom import Flow
 from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
 
 from pipelines.constants import constants
-from pipelines.lgpd.auditlog.schedules import update_audit_logs_schedule
+from pipelines.lgpd.metadata.schedules import update_metadata_schedule
 from pipelines.lgpd.metadata.tasks import get_metadata_from_api
 from pipelines.lgpd.tables_bindings.tasks import upload_dataframe_to_bigquery
 
@@ -37,4 +37,4 @@ rj_escritorio__lgpd__metadata__flow.run_config = KubernetesRun(
     image=constants.DOCKER_IMAGE.value,
     labels=[constants.RJ_ESCRITORIO_AGENT_LABEL.value],
 )
-rj_escritorio__lgpd__metadata__flow.schedule = update_audit_logs_schedule
+rj_escritorio__lgpd__metadata__flow.schedule = update_metadata_schedule

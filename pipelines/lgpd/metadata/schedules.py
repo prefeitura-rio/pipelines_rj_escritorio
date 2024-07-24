@@ -7,7 +7,7 @@ from prefect.schedules.clocks import IntervalClock
 
 from pipelines.constants import constants
 
-update_audit_logs_schedule = Schedule(
+update_metadata_schedule = Schedule(
     clocks=[
         IntervalClock(
             interval=timedelta(days=1),
