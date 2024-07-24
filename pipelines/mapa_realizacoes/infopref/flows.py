@@ -103,11 +103,12 @@ with Flow(
     )
 
     realizacoes_alarme_sonoro = transform_csv_to_pin_only_realizacoes(
-        csv_url="https://storage.googleapis.com/datario-public/static/alarme_sonoro.csv",
+        csv_url="https://storage.googleapis.com/datario-public/static/alarme_sonoro_v2.csv",
         id_tema="resiliência_climática",
         id_programa="sirenes",
         bairros=bairros,
         force_pass=force_pass,
+        gestao="3",
     )
 
     realizacoes_alertario = transform_csv_to_pin_only_realizacoes(
@@ -116,6 +117,7 @@ with Flow(
         id_programa="estações_alerta_rio",
         bairros=bairros,
         force_pass=force_pass,
+        gestao="3",
     )
 
     realizacoes_alarme_alertario = merge_lists(
@@ -128,6 +130,7 @@ with Flow(
         id_programa="câmeras",
         bairros=bairros,
         force_pass=force_pass,
+        gestao="3",
     )
 
     realizacoes_pin_only = merge_lists(

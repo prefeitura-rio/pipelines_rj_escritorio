@@ -418,6 +418,7 @@ def transform_csv_to_pin_only_realizacoes(
     csv_url: str,
     id_tema: str,
     id_programa: str,
+    gestao: str,
     bairros: List[Dict[str, Any]],
     force_pass: bool = False,
 ) -> List[Dict[str, Any]]:
@@ -455,7 +456,7 @@ def transform_csv_to_pin_only_realizacoes(
                 "descricao": None,
                 "destaque": False,
                 "endereco": None,
-                "gestao": "3",
+                "gestao": gestao,
                 "id_bairro": id_bairro,
                 "id_cidade": "rio_de_janeiro",
                 "id_orgao": None,
@@ -589,7 +590,13 @@ def transform_infopref_realizacao_to_firebase(
                 entry["id_bairro"] = id_bairro
             except ValueError:
                 id_bairro = None
-                log(f"Could not find bairro for ({coords.latitude},{coords.longitude}).", "warning")
+                log(
+                    (
+                        f"Could not find bairro for ({coords.latitude},{coords.longitude})."
+                        f"\nRaw data: {entry}"
+                    ),
+                    "warning",
+                )
         else:
             bairro_doc = db.collection("bairro").document(id_bairro).get()
             id_subprefeitura = bairro_doc.to_dict()["id_subprefeitura"]
