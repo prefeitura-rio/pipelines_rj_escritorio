@@ -19,7 +19,6 @@ from shapely.geometry.polygon import Polygon
 
 from pipelines.mapa_realizacoes.infopref.utils import (
     fetch_data,
-    from_to_theme_program,
     get_bairro_from_lat_long,
     to_snake_case,
 )
@@ -565,15 +564,8 @@ def transform_infopref_realizacao_to_firebase(
         image_url = entry["imagem_url"]
         investimento = float(entry["investimento"]) if entry["investimento"] else 0
         id_orgao = to_snake_case(entry["orgao_extenso"])
-        if gestao == "3":
-            id_programa = to_snake_case(entry["programa"])
-            id_tema = to_snake_case(entry["tema"])
-        else:
-            tema, programa = from_to_theme_program(
-                entry["tema"], entry["programa"], possible_themes=[t["data"]["nome"] for t in temas]
-            )
-            id_programa = to_snake_case(programa)
-            id_tema = to_snake_case(tema)
+        id_programa = to_snake_case(entry["programa"])
+        id_tema = to_snake_case(entry["tema"])
         # Get fields from related collections
         # - id_subprefeitura: in the "bairro" collection, find the document that matches the
         #   id_bairro and get the id_subprefeitura field
