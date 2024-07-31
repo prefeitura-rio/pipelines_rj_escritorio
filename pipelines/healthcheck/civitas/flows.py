@@ -2,6 +2,7 @@
 from prefect import Flow, Parameter
 from prefect.run_configs import KubernetesRun
 from prefect.storage import GCS
+from prefeitura_rio.pipelines_utils.state_handlers import handler_inject_bd_credentials
 
 from pipelines.constants import constants
 from pipelines.healthcheck.civitas.schedules import every_five_minutes
@@ -15,6 +16,7 @@ from pipelines.healthcheck.civitas.tasks import (
 
 with Flow(
     name="Healthcheck: CIVITAS",
+    state_handlers=[handler_inject_bd_credentials],
 ) as healthcheck__civitas__flow:
     # Parameters
     environment = Parameter("environment", default="prod")
