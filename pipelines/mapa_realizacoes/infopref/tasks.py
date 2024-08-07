@@ -252,6 +252,7 @@ def get_infopref_programa(url_programa: str, headers: dict) -> list[dict]:
     data = []
     for entry in raw_data:
         entry["programa"] = entry["programa"].replace("/", "")
+        entry["descricao"] = entry["descricao"].replace("\n", "\\n").replace("\r", "\\r")
         data.append(
             {
                 "id": to_snake_case(entry["programa"]),
@@ -268,7 +269,8 @@ def get_infopref_programa(url_programa: str, headers: dict) -> list[dict]:
 
 @task(checkpoint=False)
 def get_infopref_realizacao_raw(url_realizacao: str, headers: dict) -> list[dict]:
-    return fetch_data(url_realizacao, headers)
+    realizacoes = fetch_data(url_realizacao, headers)
+    return realizacoes
 
 
 @task(checkpoint=False)
@@ -318,6 +320,7 @@ def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
     data = []
     for entry in raw_data:
         entry["nome"] = entry["nome"].replace("/", "")
+        entry["descricao"] = entry["descricao"].replace("\n", "\\n").replace("\r", "\\r")
         data.append(
             {
                 "id": to_snake_case(entry["nome"]),
@@ -513,6 +516,7 @@ def transform_infopref_realizacao_to_firebase(
         Dict[str, Any]: The transformed entry.
     """
     try:
+        log(f"Raw entry: {entry}")
         # Get title first
         nome = " ".join(entry["titulo"].split()).strip()
         nome = nome.replace("/", "")
@@ -555,7 +559,11 @@ def transform_infopref_realizacao_to_firebase(
         coords = GeoPoint(latitude, longitude)
         data_fim = entry["entrega_projeto"]
         data_inicio = entry["inicio_projeto"]
-        descricao = entry["descricao_projeto"]
+        descricao = (
+            entry["descricao_projeto"].replace("\n", "\\n").replace("\r", "\\r")
+            if entry["descricao_projeto"]
+            else None
+        )
         destaque = entry["destaque"] == "sim"
         endereco = entry["logradouro"]
         gestao = entry["gestao"]
@@ -618,6 +626,7 @@ def transform_infopref_realizacao_to_firebase(
             "investimento": investimento,
             "nome": nome,
         }
+        log(f"Transformed entry: {data}")
         return {"id": to_snake_case(nome), "data": data}
     except Exception as exc:
         log("Could not transform entry.")

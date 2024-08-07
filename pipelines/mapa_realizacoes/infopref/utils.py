@@ -111,7 +111,7 @@ def get_bairro_from_lat_long(lat: float, long: float, bairros: list):
 def to_snake_case(val: str):
     if not val:
         return val
-    return val.strip().lower().replace(" ", "_")
+    return clean_string(val).strip().lower().replace(" ", "_")
 
 
 def to_camel_case(val: str):
