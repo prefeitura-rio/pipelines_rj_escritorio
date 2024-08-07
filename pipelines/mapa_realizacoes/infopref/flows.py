@@ -10,6 +10,7 @@ from prefeitura_rio.pipelines_utils.state_handlers import (
 )
 
 from pipelines.constants import constants
+from pipelines.mapa_realizacoes.infopref.schedules import every_day_at_3am
 from pipelines.mapa_realizacoes.infopref.tasks import (
     cleanup_unused,
     compute_aggregate_data,
@@ -235,5 +236,4 @@ rj_escritorio__mapa_realizacoes__infopref__flow.run_config = KubernetesRun(
     memory_request="2Gi",
     memory_limit="2Gi",
 )
-# TODO: add schedule
-# rj_escritorio__mapa_realizacoes__infopref__flow.schedule = None
+rj_escritorio__mapa_realizacoes__infopref__flow.schedule = every_day_at_3am
