@@ -319,7 +319,7 @@ def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_tema, headers)
     data = []
     for entry in raw_data:
-        entry["nome"] = entry["nome"].replace("/", "")
+        entry["nome"] = entry["tema"].replace("/", "")
         entry["descricao"] = entry["descricao"].replace("\n", "\\n").replace("\r", "\\r")
         data.append(
             {
