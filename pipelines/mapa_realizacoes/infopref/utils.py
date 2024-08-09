@@ -11,8 +11,7 @@ from unidecode import unidecode
 def clean_string(input_string):
     no_accents = unidecode(input_string)
     lower_case = no_accents.lower()
-    cleaned_string = re.sub(r"\s+", " ", lower_case).strip()
-    return cleaned_string
+    return remove_double_spaces(lower_case)
 
 
 def fetch_data(url: str, headers: dict) -> list[dict]:
@@ -108,10 +107,14 @@ def get_bairro_from_lat_long(lat: float, long: float, bairros: list):
     raise ValueError(f"Could not find bairro for ({lat},{long})")
 
 
+def remove_double_spaces(val: str) -> str:
+    return re.sub(r"\s+", " ", val).strip()
+
+
 def to_snake_case(val: str):
     if not val:
         return val
-    return clean_string(val).strip().lower().replace(" ", "_")
+    return val.strip().lower().replace(" ", "_")
 
 
 def to_camel_case(val: str):

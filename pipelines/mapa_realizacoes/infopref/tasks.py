@@ -20,6 +20,7 @@ from shapely.geometry.polygon import Polygon
 from pipelines.mapa_realizacoes.infopref.utils import (
     fetch_data,
     get_bairro_from_lat_long,
+    remove_double_spaces,
     to_snake_case,
 )
 from pipelines.utils import authenticated_task as task
@@ -238,8 +239,8 @@ def get_infopref_orgao(url_orgao: str, headers: dict) -> list[dict]:
                 "id": to_snake_case(entry["nome_extenso"]),
                 "data": {
                     "id_cidade": "rio_de_janeiro",
-                    "nome": entry["nome_extenso"],
-                    "sigla": entry["sigla"],
+                    "nome": remove_double_spaces(entry["nome_extenso"]),
+                    "sigla": remove_double_spaces(entry["sigla"]) if entry["sigla"] else None,
                 },
             }
         )
@@ -251,8 +252,11 @@ def get_infopref_programa(url_programa: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_programa, headers)
     data = []
     for entry in raw_data:
-        entry["programa"] = entry["programa"].replace("/", "")
-        entry["descricao"] = entry["descricao"].replace("\n", "\\n").replace("\r", "\\r")
+        entry["programa"] = remove_double_spaces(entry["programa"].replace("/", ""))
+        entry["descricao"] = remove_double_spaces(
+            entry["descricao"].replace("\n", "\\n").replace("\r", "\\r")
+        )
+        entry["tema"] = remove_double_spaces(entry["tema"].replace("/", ""))
         data.append(
             {
                 "id": to_snake_case(entry["programa"]),
@@ -319,8 +323,10 @@ def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_tema, headers)
     data = []
     for entry in raw_data:
-        entry["nome"] = entry["tema"].replace("/", "")
-        entry["descricao"] = entry["descricao"].replace("\n", "\\n").replace("\r", "\\r")
+        entry["nome"] = remove_double_spaces(entry["tema"].replace("/", ""))
+        entry["descricao"] = remove_double_spaces(
+            entry["descricao"].replace("\n", "\\n").replace("\r", "\\r")
+        )
         data.append(
             {
                 "id": to_snake_case(entry["nome"]),
@@ -448,7 +454,7 @@ def transform_csv_to_pin_only_realizacoes(
             coords = GeoPoint(latitude, longitude)
             bairro = get_bairro_from_lat_long(coords.latitude, coords.longitude, bairros)
             id_bairro = to_snake_case(bairro["nome"])
-            nome = " ".join(row["nome"].split()).strip()
+            nome = remove_double_spaces(" ".join(row["nome"].split()).strip())
             nome = nome.replace("/", "")
             data = {
                 "cariocas_atendidos": None,
@@ -518,7 +524,7 @@ def transform_infopref_realizacao_to_firebase(
     try:
         log(f"Raw entry: {entry}")
         # Get title first
-        nome = " ".join(entry["titulo"].split()).strip()
+        nome = remove_double_spaces(" ".join(entry["titulo"].split()).strip())
         nome = nome.replace("/", "")
         # Transform fields
         cariocas_atendidos = (
@@ -560,20 +566,26 @@ def transform_infopref_realizacao_to_firebase(
         data_fim = entry["entrega_projeto"]
         data_inicio = entry["inicio_projeto"]
         descricao = (
-            entry["descricao_projeto"].replace("\n", "\\n").replace("\r", "\\r")
+            remove_double_spaces(
+                entry["descricao_projeto"].replace("\n", "\\n").replace("\r", "\\r")
+            )
             if entry["descricao_projeto"]
             else None
         )
         destaque = entry["destaque"] == "sim"
-        endereco = entry["logradouro"]
+        endereco = remove_double_spaces(entry["logradouro"]) if entry["logradouro"] else None
         gestao = entry["gestao"]
         id_bairro = to_snake_case(entry["bairro"])
         id_status = to_snake_case(entry["status"])
         image_url = entry["imagem_url"]
         investimento = float(entry["investimento"]) if entry["investimento"] else 0
-        id_orgao = to_snake_case(entry["orgao_extenso"])
-        id_programa = to_snake_case(entry["programa"])
-        id_tema = to_snake_case(entry["tema"])
+        id_orgao = to_snake_case(
+            remove_double_spaces(entry["orgao_extenso"]) if entry["orgao_extenso"] else ""
+        )
+        id_programa = to_snake_case(
+            remove_double_spaces(entry["programa"]) if entry["programa"] else ""
+        )
+        id_tema = to_snake_case(remove_double_spaces(entry["tema"]) if entry["tema"] else "")
         # Get fields from related collections
         # - id_subprefeitura: in the "bairro" collection, find the document that matches the
         #   id_bairro and get the id_subprefeitura field

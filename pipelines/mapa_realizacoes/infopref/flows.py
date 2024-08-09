@@ -97,6 +97,11 @@ with Flow(
         temas=unmapped(temas),
         force_pass=unmapped(force_pass),
     )
+    realizacoes.set_upstream(cidades)
+    realizacoes.set_upstream(orgaos)
+    realizacoes.set_upstream(programas)
+    realizacoes.set_upstream(statuses)
+    realizacoes.set_upstream(temas)
     realizacoes_filtered = filter_out_nones(data=realizacoes)
 
     realizacoes_nova_gestao, realizacoes_gestoes_antigas = split_by_gestao(
