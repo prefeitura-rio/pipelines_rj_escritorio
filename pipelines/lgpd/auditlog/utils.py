@@ -2,6 +2,7 @@
 from datetime import datetime
 
 import pandas as pd
+from google.api_core.exceptions import NotFound as GCPNotFoundError
 from google.cloud import logging_v2
 from prefeitura_rio.pipelines_utils.logging import log
 
@@ -21,7 +22,11 @@ def extract_iam_audit_logs(
     log(f"Project: {project_id}")
     log(f"Filter: {filter_}")
 
-    response = client.list_entries(resource_names=[parent], filter_=filter_)
+    try:
+        response = client.list_entries(resource_names=[parent], filter_=filter_)
+    except GCPNotFoundError:
+        log(f"GCP has raised a NotFound error for project {project_id}.", level="warning")
+        return []
 
     entries = []
     for entry in response:
