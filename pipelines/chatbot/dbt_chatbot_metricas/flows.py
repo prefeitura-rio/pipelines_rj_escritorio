@@ -17,7 +17,7 @@ from prefeitura_rio.pipelines_utils.state_handlers import (
 )
 
 from pipelines.constants import constants
-from pipelines.identidade_unica.dbt_identidade_unica.schedules import update_schedule
+from pipelines.chatbot.dbt_chatbot_metricas.schedules import update_schedule
 
 run_rbt_chatbot_flow = deepcopy(templates__run_dbt_model__flow)
 run_rbt_chatbot_flow.name = "Chatbot: Materializar tabelas"
