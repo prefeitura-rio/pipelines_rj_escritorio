@@ -1,8 +1,8 @@
 WITH filtro_divida_ativa AS (
-    SELECT 
+    SELECT
       conversation_name
     FROM `rj-chatbot-dev.dialogflowcx.historico_conversas`
-    WHERE 
+    WHERE
       JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.ambiente')) = "production"
       AND turn_position = 1
       AND JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')) = "dívida ativa"
@@ -109,25 +109,25 @@ FluxoMain AS (
 ParametrosExtracted AS (
     SELECT
         new_conversation_id,
-        CASE 
-            WHEN JSON_VALUE(parametros, '$.api_resposta_sucesso') IS NULL THEN 
-                CASE 
+        CASE
+            WHEN JSON_VALUE(parametros, '$.api_resposta_sucesso') IS NULL THEN
+                CASE
                     WHEN REGEXP_CONTAINS(TO_JSON_STRING(parametros), r'\"api_resposta_sucesso\"') THEN 'replaced'
                     ELSE NULL
                 END
             ELSE JSON_VALUE(parametros, '$.api_resposta_sucesso')
         END AS api_resposta_sucesso,
-        CASE 
-            WHEN JSON_VALUE(parametros, '$.api_descricao_erro') IS NULL THEN 
-                CASE 
+        CASE
+            WHEN JSON_VALUE(parametros, '$.api_descricao_erro') IS NULL THEN
+                CASE
                     WHEN REGEXP_CONTAINS(TO_JSON_STRING(parametros), r'\"api_descricao_erro\"') THEN 'replaced'
                     ELSE NULL
                 END
             ELSE JSON_VALUE(parametros, '$.api_descricao_erro')
         END AS api_descricao_erro
-    FROM 
+    FROM
         new_conv_id
-    WHERE 
+    WHERE
         parametros IS NOT NULL
 ),
 
@@ -164,7 +164,7 @@ FinalTableDA AS (
     WHERE t.type_flow != 'undefined'
 )
 
--- SELECT * FROM FinalTableDA #WHERE api_resposta_sucesso = "replaced" AND main_fluxo IN ('DA 3 - Consulta de protestos', 'DA 1 - Consultar Débitos Dívida Ativa Solicitar Guias Exibir Informações') 
+-- SELECT * FROM FinalTableDA #WHERE api_resposta_sucesso = "replaced" AND main_fluxo IN ('DA 3 - Consulta de protestos', 'DA 1 - Consultar Débitos Dívida Ativa Solicitar Guias Exibir Informações')
 -- ORDER BY new_conversation_id, new_turn;
 
 , FinalTableOutros AS (
@@ -183,10 +183,10 @@ FinalTableDA AS (
 )
 
 , primeira_interacao AS (
-  SELECT 
+  SELECT
     new_conversation_id,
     main_fluxo as fluxo_primeira_interacao,
-    request_time AS hora_primeira_interacao, 
+    request_time AS hora_primeira_interacao,
     mensagem_cidadao AS primeira_mensagem,
     JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.ambiente')) AS ambiente
   FROM FinalTableDA
@@ -194,8 +194,8 @@ FinalTableDA AS (
 )
 
 , ultima_interacao as (
-SELECT 
-  new_conversation_id, 
+SELECT
+  new_conversation_id,
   MAX(new_turn) as last_turn
 FROM FinalTableDA
 GROUP BY new_conversation_id
@@ -206,9 +206,9 @@ SELECT
   hist.new_conversation_id as conversation_name,
   JSON_VALUE(parametros, '$.usuario_cpf') AS cpf,
   JSON_VALUE(parametros, '$.phone') as telefone,
-  CASE 
+  CASE
     WHEN pi.ambiente = "production" THEN "Produção"
-    ELSE "Homologação" 
+    ELSE "Homologação"
   END ambiente,
   main_fluxo as fluxo_nome,
   horario,
@@ -224,33 +224,33 @@ SELECT
 #####
   CASE
     WHEN hist.new_turn = 1 THEN "hard_bounce"
-    WHEN 
-      hist.new_turn = 2 
+    WHEN
+      hist.new_turn = 2
       AND (
         ENDS_WITH(hist.resposta_bot, 'VOLTAR')
-        OR ENDS_WITH(hist.resposta_bot, 'SAIR') 
+        OR ENDS_WITH(hist.resposta_bot, 'SAIR')
       )
       THEN "soft_bounce"
-    WHEN 
+    WHEN
         ENDS_WITH(hist.resposta_bot, 'VOLTAR')
-     OR ENDS_WITH(hist.resposta_bot, 'SAIR') 
+     OR ENDS_WITH(hist.resposta_bot, 'SAIR')
      THEN "desistencia"
     WHEN
         (hist.type_flow = "informational" AND hist.fluxo = "DA 0 - Menu da Dívida Ativa")
         THEN "engajado"
-    WHEN 
+    WHEN
       (hist.type_flow = "informational" AND hist.fluxo != "DA 0 - Menu da Dívida Ativa") #timeout informacional
       OR
       (hist.type_flow = "service" AND hist.api_resposta_sucesso IS NULL)
       THEN "timeout_usuario_pre_transacao"
-    -- WHEN 
+    -- WHEN
     --   JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado')) = "false"
     --   OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado')) = "false"
     --   THEN "impedimento_regra_negocio"
-    WHEN 
+    WHEN
         (hist.type_flow = "service" AND hist.api_resposta_sucesso IN ("replaced", "true"))
         THEN "transacao_realizada"
-    WHEN 
+    WHEN
       hist.resposta_bot IS NULL
       THEN "timeout interno"
     WHEN hist.type_flow = "service" THEN "timeout_usuario_pos_transacao"

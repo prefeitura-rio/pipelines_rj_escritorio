@@ -4,16 +4,16 @@ WITH compilation AS (
   FROM {{ ref('historico_conversas_macrofluxos') }}
 ),
 
--- SELECT * FROM compilation 
--- where 
+-- SELECT * FROM compilation
+-- where
 -- #NOT ENDS_WITH(new_conversation_id, "00")
 -- STARTS_WITH(new_conversation_id, "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-09700003664811")
 -- order by conversation_name, turn_position ASC
 
 primeira_interacao AS (
-  SELECT 
+  SELECT
     new_conversation_id,
-    request_time AS hora_primeira_interacao, 
+    request_time AS hora_primeira_interacao,
     mensagem_cidadao AS primeira_mensagem,
     JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.intent.displayName')) as primeiro_intent,
     JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.ambiente')) AS ambiente
@@ -22,8 +22,8 @@ primeira_interacao AS (
 )
 
 , ultima_interacao as (
-SELECT 
-  new_conversation_id, 
+SELECT
+  new_conversation_id,
   MAX(new_turn) as last_turn
 FROM compilation
 GROUP BY new_conversation_id
@@ -34,9 +34,9 @@ SELECT
   hist.new_conversation_id as conversation_name,
   JSON_VALUE(parametros, '$.usuario_cpf') AS cpf,
   JSON_VALUE(parametros, '$.phone') as telefone,
-  CASE 
+  CASE
     WHEN pi.ambiente = "production" THEN "Produção"
-    ELSE "Homologação" 
+    ELSE "Homologação"
   END ambiente,
   CASE
     WHEN hist.nome_servico_1746 = "Serviço Não Mapeado"
@@ -56,7 +56,7 @@ SELECT
   CASE
     WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_protocolo')) IS NOT NULL THEN "chamado_aberto"
     WHEN hist.turn_position = 1 THEN "hard_bounce"
-    WHEN 
+    WHEN
         #hist.turn_position > 2
         hist.nome_servico_1746 = "Serviço Não Mapeado"
         AND hist.fluxo = "CadÚnico"
@@ -64,39 +64,39 @@ SELECT
     WHEN
       JSON_VALUE(JSON_EXTRACT(hist.response, '$.queryResult.intent.displayName')) = "voltar_inicio_padrao"
       THEN "desistência"
-    WHEN 
+    WHEN
       JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_retorno')) = "erro_interno_timeout"
       THEN "timeout SGRC"
     WHEN ENDS_WITH(resposta_bot,'TRANSBORDO') THEN "transbordo"
-    WHEN 
+    WHEN
       # Casos em que o Chatbot identificou a inelegibilidade
       (JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado_justificativa')) != "erro_desconhecido"
       AND
       (JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado')) = "false"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado')) = "false")
-      ) 
+      )
       # Casos em que o SGRC identificou a inelegibilidade
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado_justificativa')) = "chamado_aberto"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado_justificativa')) = "chamado_fechado_12_dias"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado_justificativa')) = "chamado_aberto"
-      OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado_justificativa')) = "chamado_fechado_12_dias" 
+      OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado_justificativa')) = "chamado_fechado_12_dias"
       THEN "impedimento_regra_negocio"
-    WHEN 
+    WHEN
       resposta_bot IS NULL
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_retorno')) = "erro_interno"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado_justificativa')) = "erro_desconhecido"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado_justificativa')) = "erro_desconhecido"
       THEN "timeout interno"
     WHEN ENDS_WITH(resposta_bot, 'SAIR') THEN "engajado"
-    WHEN 
-      hist.turn_position = 2 
+    WHEN
+      hist.turn_position = 2
       AND hist.nome_servico_1746 = "Serviço Não Mapeado"
       THEN "soft_bounce"
-    WHEN 
+    WHEN
       hist.turn_position = 2
       AND hist.nome_servico_1746 != "Serviço Não Mapeado"
       THEN "timeout_usuario_pos_transacao"
-    WHEN 
+    WHEN
         hist.turn_position > 2
         AND hist.nome_servico_1746 = "Serviço Não Mapeado"
         THEN "timeout_usuario_pre_transacao"
@@ -109,13 +109,13 @@ SELECT
   JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_retorno')) erro_abertura_ticket,
   JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_protocolo')) protocolo,
   CASE
-    WHEN hist.turns_until_service = 0 
+    WHEN hist.turns_until_service = 0
       THEN hist.new_turn
     ELSE hist.turns_until_service END as turnos_em_menus,
   hist.estimativa_turnos_menu,
-  hist.new_turn - hist.turnos_em_endereco - hist.turnos_em_identificacao - 
+  hist.new_turn - hist.turnos_em_endereco - hist.turnos_em_identificacao -
     (CASE
-      WHEN hist.turns_until_service = 0 
+      WHEN hist.turns_until_service = 0
         THEN hist.new_turn
       ELSE hist.turns_until_service END) as turnos_em_servico,
   hist.estimativa_turnos_servico,
@@ -123,7 +123,7 @@ SELECT
   hist.turnos_em_identificacao,
   hist.conversation_name as conversa_completa_id,
   CASE
-    WHEN hist.conversa_completa_turnos_em_menus = 0 
+    WHEN hist.conversa_completa_turnos_em_menus = 0
       THEN hist.conversa_completa_duracao
     ELSE hist.conversa_completa_turnos_em_menus END as conversa_completa_turnos_em_menus,
   hist.conversa_completa_fluxos_interagidos,
