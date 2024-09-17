@@ -9,7 +9,7 @@ every_five_minutes = Schedule(
     clocks=[
         IntervalClock(
             interval=timedelta(minutes=5),
-            start_date=datetime(2021, 1, 1, tzinfo=pytz.timezone("America/Sao_Paulo")),
+            start_date=datetime(2020, 1, 1, tzinfo=pytz.timezone("America/Sao_Paulo")),
             labels=["escritoriodedados"],
         )
     ]
