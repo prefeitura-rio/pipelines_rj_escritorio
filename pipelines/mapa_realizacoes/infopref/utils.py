@@ -99,11 +99,19 @@ def from_to_theme_program(
     raise ValueError(f"Could not map theme and program for ({original_theme}, {original_program})")
 
 
-def get_bairro_from_lat_long(lat: float, long: float, bairros: list):
+def get_bairro_from_lat_long(
+    lat: float, long: float, bairros: list, accept_nearest_on_not_found: bool = False
+):
     point = Point(long, lat)
     for bairro in bairros:
         if bairro["polygon"].contains(point):
             return bairro
+
+    if accept_nearest_on_not_found:
+        # Find the nearest bairro if not found
+        nearest_bairro = min(bairros, key=lambda b: point.distance(b["polygon"].centroid))
+        return nearest_bairro
+
     raise ValueError(f"Could not find bairro for ({lat},{long})")
 
 
