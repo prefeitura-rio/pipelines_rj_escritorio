@@ -39,7 +39,7 @@ jobs:
       - name: Install Python dependencies for deploying
         run: |-
           pip install -U pip uv
-          uv sync --etra dev --extra ci
+          uv sync --extra dev --extra ci
 
       - name: Update image tag in constants
         run: |-

@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --etra dev --extra ci
+          uv sync --extra dev --extra ci
 
       - name: Lint with black, isort and flake8
         run: |
