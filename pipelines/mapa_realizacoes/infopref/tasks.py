@@ -452,7 +452,10 @@ def transform_csv_to_pin_only_realizacoes(
                 longitude = longitude.replace(",", ".")
             longitude = float(longitude)
             coords = GeoPoint(latitude, longitude)
-            bairro = get_bairro_from_lat_long(coords.latitude, coords.longitude, bairros)
+            # TODO: accept_nearest_on_not_found should be force_pass
+            bairro = get_bairro_from_lat_long(
+                coords.latitude, coords.longitude, bairros, accept_nearest_on_not_found=True
+            )
             id_bairro = to_snake_case(bairro["nome"])
             nome = remove_double_spaces(" ".join(row["nome"].split()).strip())
             nome = nome.replace("/", "")
@@ -595,7 +598,12 @@ def transform_infopref_realizacao_to_firebase(
         id_subprefeitura: str = None
         if id_bairro not in all_id_bairros:
             try:
-                bairro = get_bairro_from_lat_long(coords.latitude, coords.longitude, bairros)
+                bairro = get_bairro_from_lat_long(
+                    coords.latitude,
+                    coords.longitude,
+                    bairros,
+                    accept_nearest_on_not_found=force_pass,
+                )
                 id_bairro = to_snake_case(bairro["nome"])
                 if id_bairro not in all_id_bairros:
                     raise ValueError(f"Could not find bairro with id {id_bairro}.")
