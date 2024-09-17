@@ -9,3 +9,4 @@ from pipelines.identidade_unica import *  # noqa
 from pipelines.lgpd import *  # noqa
 from pipelines.stress import *  # noqa
 from pipelines.templates import *  # noqa
+from pipelines.chatbot import *  # noqa
