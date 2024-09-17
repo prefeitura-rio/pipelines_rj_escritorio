@@ -27,7 +27,7 @@ chatbot_tables = {
         "table_id": "historico_conversas_legivel",
         "upstream": False,
     },
-    "conversas_completas_metricas": {	
+    "conversas_completas_metricas": {
         "table_id": "conversas_completas_metricas",
         "upstream": False,
     },
@@ -37,7 +37,7 @@ chatbot_clocks = [
     IntervalClock(
         interval=timedelta(hours=12),
         start_date=datetime(2024, 9, 17, 19, 0, tzinfo=pytz.timezone("America/Sao_Paulo"))
-        + timedelta(minutes = 45 * count),
+        + timedelta(minutes=45 * count),
         labels=[
             constants.RJ_ESCRITORIO_AGENT_LABEL.value,
         ],

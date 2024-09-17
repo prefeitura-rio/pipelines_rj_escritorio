@@ -1,6 +1,6 @@
 with ultima_interacao as (
-SELECT 
-  conversation_name, 
+SELECT
+  conversation_name,
   MAX(turn_position) as last_turn
 FROM `rj-chatbot-dev.dialogflowcx.historico_conversas`
 GROUP BY conversation_name
@@ -8,14 +8,14 @@ GROUP BY conversation_name
 
 # Captura apenas mensagens vindas do ASC através da mensagem que inicia a conversa
 primeira_interacao AS (
-  SELECT 
+  SELECT
     conversation_name,
     `rj-chatbot-dev.dialogflowcx.inicial_sentence_to_flow_name`(JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text'))) AS fluxo_primeira_interacao,
-    request_time AS hora_primeira_interacao, 
+    request_time AS hora_primeira_interacao,
     JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')) AS primeira_mensagem,
     JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.ambiente')) AS ambiente
   FROM `rj-chatbot-dev.dialogflowcx.historico_conversas`
-  WHERE 
+  WHERE
     turn_position = 1
     AND `rj-chatbot-dev.dialogflowcx.inicial_sentences`(JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')))
 ),
@@ -25,9 +25,9 @@ SELECT
   hist.conversation_name,
   JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.usuario_cpf')) AS cpf,
   JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.phone')) as telefone,
-  CASE 
+  CASE
     WHEN pi.ambiente = "production" THEN "Produção"
-    ELSE "Homologação" 
+    ELSE "Homologação"
   END ambiente,
   INITCAP(pi.fluxo_primeira_interacao) as fluxo_nome,
   FORMAT_DATETIME("%d/%m/%Y às %H:%M", DATETIME(request_time, "America/Buenos_Aires")) as horario,
@@ -43,54 +43,54 @@ SELECT
   CASE
     WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_protocolo')) IS NOT NULL THEN "chamado_aberto"
     WHEN hist.turn_position = 1 THEN "hard_bounce"
-    WHEN 
-      hist.turn_position = 2 
+    WHEN
+      hist.turn_position = 2
       AND (
         ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'VOLTAR')
-        OR ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'SAIR') 
+        OR ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'SAIR')
       )
       THEN "soft_bounce"
-    WHEN 
+    WHEN
       hist.turn_position = 2
       THEN "timeout_usuario_pos_transacao"
-    WHEN 
+    WHEN
       JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_retorno')) = "erro_interno_timeout"
       THEN "timeout SGRC"
     WHEN ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')),'TRANSBORDO') THEN "transbordo"
-    WHEN 
+    WHEN
       # Casos em que o Chatbot identificou a inelegibilidade
       (JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado_justificativa')) != "erro_desconhecido"
       AND
       (JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado')) = "false"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado')) = "false")
-      ) 
+      )
       # Casos em que o SGRC identificou a inelegibilidade
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado_justificativa')) = "chamado_aberto"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado_justificativa')) = "chamado_fechado_12_dias"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado_justificativa')) = "chamado_aberto"
-      OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado_justificativa')) = "chamado_fechado_12_dias" 
+      OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado_justificativa')) = "chamado_fechado_12_dias"
       THEN "impedimento_regra_negocio"
-    WHEN 
+    WHEN
       JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')) IS NULL
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_retorno')) = "erro_interno"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado_justificativa')) = "erro_desconhecido"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado_justificativa')) = "erro_desconhecido"
       THEN "timeout interno"
-    WHEN 
+    WHEN
         ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'VOLTAR')
-     OR ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'SAIR') 
+     OR ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'SAIR')
      THEN "desistencia"
     ELSE  "timeout_usuario_pos_transacao"
     END classificacao_conversa,
   CASE
-    WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_protocolo')) IS NOT NULL 
+    WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_protocolo')) IS NOT NULL
       OR ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'VOLTAR')
       OR ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'SAIR')
       THEN "sucesso"
     ELSE "falha"
     END status_final_conversa,
   JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentPage.displayName')) as passo_falha,
-  CASE 
+  CASE
     WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName')) = '1647 (RRL)' THEN 'Remoção de Resíduo'
     WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName')) = '1614 (PAL)' THEN 'Poda de Árvore'
     WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName')) = '1464 (VACIO)' THEN 'Verificação de Ar Condicionado Inoperante em Ônibus'
@@ -104,7 +104,7 @@ SELECT
     WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName')) = '223 (RSTAP)' THEN "Reparo de Sinal de Trânsito em Amarelo Piscante"
     WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName')) = '1618 (CRCA)' THEN "Controle de Roedores e Caramujos Africanos"
     WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName')) = '3803 (RSTAAV)' THEN "Reparo de Sinal de Trânsito Abalroado ou Ausente ou Virado"
-    ELSE JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName')) 
+    ELSE JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName'))
     END as fluxo_falha,
   JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_retorno')) erro_abertura_ticket,
   JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_protocolo')) protocolo,
@@ -126,7 +126,7 @@ INNER JOIN primeira_interacao as pi
   ON hist.conversation_name = pi.conversation_name
 ORDER BY request_time DESC)
 
-SELECT 
+SELECT
   *,
   JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.codigo_servico_1746')) as codigo_servico
 FROM fim_conversas_1746

@@ -3,9 +3,9 @@ WITH marked_conversations AS (
     SELECT DISTINCT
         conversation_name
     FROM rj-chatbot-dev.dialogflowcx.historico_conversas
-    WHERE 
+    WHERE
         turn_position = 1
-        AND 
+        AND
         (
           JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName')) IN (
               "Cuidados com a Cidade",
@@ -17,7 +17,7 @@ WITH marked_conversations AS (
               "Transportes",
               "Tributos e Licenciamento"
           )
-          OR 
+          OR
           (
             JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentPage.displayName')) = 'Menu Principal'
             AND request_time >= '2024-08-02'
@@ -41,7 +41,7 @@ WITH marked_conversations AS (
           request_time,
           response
       FROM rj-chatbot-dev.dialogflowcx.historico_conversas AS h
-      INNER JOIN filtro_macrofluxos AS f 
+      INNER JOIN filtro_macrofluxos AS f
           ON f.conversation_name = h.conversation_name
       -- Remove o ORDER BY aqui e adicione apenas onde for necessário
   ),
@@ -63,7 +63,7 @@ WITH marked_conversations AS (
           CASE
               WHEN lag_codigo_servico_1746_1 IS NULL AND codigo_servico_1746 IS NOT NULL THEN 0
               WHEN lag_codigo_servico_1746_2 IS NOT NULL AND codigo_servico_1746 IS NULL THEN 1
-              WHEN lag_codigo_servico_1746_1 IS NOT NULL 
+              WHEN lag_codigo_servico_1746_1 IS NOT NULL
                   AND lag_codigo_servico_1746_1 != codigo_servico_1746 THEN 1
               ELSE 0
           END AS isNewPart
@@ -128,7 +128,7 @@ new_conv_id AS (
 service_names AS (
     SELECT
         new_conversation_id,
-        CASE 
+        CASE
             WHEN COUNT(DISTINCT nome_servico_1746) = 1 THEN MAX(nome_servico_1746)
             WHEN COUNT(DISTINCT nome_servico_1746) = 2 AND MAX(nome_servico_1746) = 'Serviço não mapeado' THEN MIN(nome_servico_1746)
             WHEN COUNT(DISTINCT nome_servico_1746) = 2 AND MIN(nome_servico_1746) = 'Serviço não mapeado' THEN MAX(nome_servico_1746)
@@ -191,8 +191,8 @@ conversas_completas_metrics AS (
     COUNT(CASE WHEN address_turn IS true THEN 1 ELSE NULL END) as conversa_completa_fluxos_endereco,
     COUNT(CASE WHEN identification_turn IS true THEN 1 ELSE NULL END) as conversa_completa_fluxos_identificacao
   FROM compilation_0 as c0
-  INNER JOIN 
-  (SELECT conversation_name, SUM(turns_per_service) as turns_per_service FROM 
+  INNER JOIN
+  (SELECT conversation_name, SUM(turns_per_service) as turns_per_service FROM
     (
       SELECT
         conversation_name,
@@ -215,14 +215,14 @@ conversas_completas_last_service AS (
     ltp.last_turn_position
   FROM
     compilation_0 as c
-  INNER JOIN 
+  INNER JOIN
     (
-      SELECT 
-        conversation_name, 
+      SELECT
+        conversation_name,
         MAX(turn_position) AS last_turn_position
-      FROM 
+      FROM
         compilation_0
-      GROUP BY 
+      GROUP BY
         conversation_name
     ) as ltp
     ON c.conversation_name = ltp.conversation_name AND c.turn_position = ltp.last_turn_position
@@ -276,7 +276,7 @@ compilation AS (
     ON c.conversation_name = cc.conversation_name
   LEFT JOIN turnos_em_identificacao_e_endereco as tie
     ON c.new_conversation_id = tie.new_conversation_id
-  INNER JOIN 
+  INNER JOIN
     (SELECT * FROM marked_conversations
   WHERE conversation_name NOT IN ("projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/fcd7f325-6095-4ce1-9757-6cc028b8b554/sessions/protocol-73430003652037", "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-38990003782307")) as n
     ON c.conversation_name = n.conversation_name AND c.turn_position = n.turn_position
