@@ -89,25 +89,6 @@ with Flow(
     db.set_upstream(firestore_credentials_task)
     bairros = get_bairros_with_geometry(db=db)
 
-    realizacoes = transform_infopref_realizacao_to_firebase.map(
-        entry=raw_realizacoes,
-        gmaps_key=unmapped(gmaps_key),
-        db=unmapped(db),
-        bairros=unmapped(bairros),
-        temas=unmapped(temas),
-        force_pass=unmapped(force_pass),
-    )
-    realizacoes.set_upstream(cidades)
-    realizacoes.set_upstream(orgaos)
-    realizacoes.set_upstream(programas)
-    realizacoes.set_upstream(statuses)
-    realizacoes.set_upstream(temas)
-    realizacoes_filtered = filter_out_nones(data=realizacoes)
-
-    realizacoes_nova_gestao, realizacoes_gestoes_antigas = split_by_gestao(
-        realizacoes=realizacoes_filtered
-    )
-
     realizacoes_alarme_sonoro = transform_csv_to_pin_only_realizacoes(
         csv_url="https://storage.googleapis.com/datario-public/static/alarme_sonoro_v2.csv",
         id_tema="resiliência_climática",
@@ -141,6 +122,26 @@ with Flow(
 
     realizacoes_pin_only = merge_lists(
         list_a=realizacoes_alarme_alertario, list_b=realizacoes_cameras
+    )
+
+    realizacoes = transform_infopref_realizacao_to_firebase.map(
+        entry=raw_realizacoes,
+        gmaps_key=unmapped(gmaps_key),
+        db=unmapped(db),
+        bairros=unmapped(bairros),
+        temas=unmapped(temas),
+        force_pass=unmapped(force_pass),
+    )
+    realizacoes.set_upstream(cidades)
+    realizacoes.set_upstream(orgaos)
+    realizacoes.set_upstream(programas)
+    realizacoes.set_upstream(statuses)
+    realizacoes.set_upstream(temas)
+    realizacoes.set_upstream(realizacoes_pin_only)
+    realizacoes_filtered = filter_out_nones(data=realizacoes)
+
+    realizacoes_nova_gestao, realizacoes_gestoes_antigas = split_by_gestao(
+        realizacoes=realizacoes_filtered
     )
 
     clean_cidades, clean_orgaos, clean_programas, clean_statuses, clean_temas = cleanup_unused(
