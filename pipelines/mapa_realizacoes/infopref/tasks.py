@@ -452,9 +452,8 @@ def transform_csv_to_pin_only_realizacoes(
                 longitude = longitude.replace(",", ".")
             longitude = float(longitude)
             coords = GeoPoint(latitude, longitude)
-            # TODO: accept_nearest_on_not_found should be force_pass
             bairro = get_bairro_from_lat_long(
-                coords.latitude, coords.longitude, bairros, accept_nearest_on_not_found=True
+                coords.latitude, coords.longitude, bairros, accept_nearest_on_not_found=force_pass
             )
             id_bairro = to_snake_case(bairro["nome"])
             nome = remove_double_spaces(" ".join(row["nome"].split()).strip())
