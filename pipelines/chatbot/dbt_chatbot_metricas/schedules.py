@@ -46,8 +46,8 @@ chatbot_clocks = [
             "table_id": parameters["table_id"],
             "upstream": parameters["upstream"],
             "infisical_credential_path": {
-                "secret_path": "/dbt-rj-chatbot-dev",
-                "secret_name": "SEVICE_ACCOUNT",
+                "secret_path": "/rj-chatbot-dev",
+                "secret_name": "DBT_SEVICE_ACCOUNT",
             },
             "dbt_project_materialization": "rj-chatbot-dev",
         },
