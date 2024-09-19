@@ -53,4 +53,4 @@ profile = "black"
 lint = "black . && isort . && flake8 ."
 
 [tool.uv.sources]
-prefeitura-rio = { git = "https://github.com/prefeitura-rio/prefeitura-rio.git", rev = "62236b527b3528437b8d460f60c79ee39309b151" }
+prefeitura-rio = { git = "https://github.com/prefeitura-rio/prefeitura-rio.git", rev = "1e20ad960b680d8982046715e18e1a66bd4386ea" }

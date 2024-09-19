@@ -43,3 +43,6 @@ models:
     identidade_unica:
       +materialized: table
       +schema: identidade_unica
+    dialogflowcx:
+      +materialized: table
+      +schema: dialogflowcx
