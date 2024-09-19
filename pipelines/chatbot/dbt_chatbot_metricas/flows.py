@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-DBT-related flows....
+DBT-related flows.....
 """
 
 from copy import deepcopy
@@ -26,7 +26,10 @@ run_rbt_chatbot_flow.state_handlers = [
     handler_initialize_sentry,
 ]
 run_rbt_chatbot_flow.storage = GCS(constants.GCS_FLOWS_BUCKET.value)
-run_rbt_chatbot_flow.run_config = KubernetesRun(image=constants.DOCKER_IMAGE.value)
+run_rbt_chatbot_flow.run_config = KubernetesRun(
+    image=constants.DOCKER_IMAGE.value,
+    labels=[constants.RJ_ESCRITORIO_AGENT_LABEL.value],
+)
 
 identidade_unica_default_parameters = {
     "dataset_id": "dialogflowcx",

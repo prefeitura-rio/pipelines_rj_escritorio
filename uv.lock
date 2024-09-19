@@ -2091,7 +2091,7 @@ requires-dist = [
     { name = "pillow", specifier = "==10.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = "==3.7.0" },
     { name = "prefect", specifier = "==1.4.1" },
-    { name = "prefeitura-rio", extras = ["pipelines", "pipelines-templates"], git = "https://github.com/prefeitura-rio/prefeitura-rio.git?rev=7cdfdddf921215b913ba132fb3244cce9b0c6c56" },
+    { name = "prefeitura-rio", extras = ["pipelines", "pipelines-templates"], git = "https://github.com/prefeitura-rio/prefeitura-rio.git?rev=55e9d3d360a22ca883b7bd8a69e43eba46e480dd" },
     { name = "requests", specifier = "==2.31.0" },
     { name = "shapely", specifier = "==2.0.4" },
     { name = "taskipy", marker = "extra == 'dev'", specifier = "==1.12.2" },
@@ -2160,7 +2160,7 @@ wheels = [
 [[package]]
 name = "prefeitura-rio"
 version = "1.1.3a2"
-source = { git = "https://github.com/prefeitura-rio/prefeitura-rio.git?rev=7cdfdddf921215b913ba132fb3244cce9b0c6c56#7cdfdddf921215b913ba132fb3244cce9b0c6c56" }
+source = { git = "https://github.com/prefeitura-rio/prefeitura-rio.git?rev=55e9d3d360a22ca883b7bd8a69e43eba46e480dd#55e9d3d360a22ca883b7bd8a69e43eba46e480dd" }
 dependencies = [
     { name = "hvac" },
     { name = "loguru" },
