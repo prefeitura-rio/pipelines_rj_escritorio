@@ -44,8 +44,12 @@ chatbot_clocks = [
         parameter_defaults={
             "dataset_id": "dialogflowcx",
             "table_id": parameters["table_id"],
-            "mode": "prod",
             "upstream": parameters["upstream"],
+            "infisical_credential_path": {
+                "secret_path": "/dbt-rj-chatbot-dev",
+                "secret_name": "SEVICE_ACCOUNT",
+            },
+            "dbt_project_materialization": "rj-chatbot-dev",
         },
     )
     for count, (_, parameters) in enumerate(chatbot_tables.items())
