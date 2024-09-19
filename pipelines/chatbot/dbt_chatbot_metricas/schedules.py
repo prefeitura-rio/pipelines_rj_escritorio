@@ -45,7 +45,7 @@ chatbot_clocks = [
             "dataset_id": "dialogflowcx",
             "table_id": parameters["table_id"],
             "upstream": parameters["upstream"],
-            "infisical_credential_path": {
+            "infisical_credential_dict": {
                 "secret_path": "/rj-chatbot-dev",
                 "secret_name": "DBT_SEVICE_ACCOUNT",
             },
