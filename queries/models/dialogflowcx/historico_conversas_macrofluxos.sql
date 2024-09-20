@@ -23,6 +23,7 @@ WITH marked_conversations AS (
             AND request_time >= '2024-08-02'
           )
         )
+        AND conversation_name NOT IN ("projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-62510003786190", "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-37270003820798") #travazap filter
   ),
 
   historico AS (
