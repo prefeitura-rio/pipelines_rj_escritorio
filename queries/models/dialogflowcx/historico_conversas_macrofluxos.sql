@@ -23,8 +23,12 @@ WITH marked_conversations AS (
             AND request_time >= '2024-08-02'
           )
         )
-        AND conversation_name NOT IN ("projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-62510003786190", "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-37270003820798") #travazap filter
-  ),
+        AND conversation_name NOT IN (
+          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-62510003786190",
+          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-37270003820798",
+          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/fcd7f325-6095-4ce1-9757-6cc028b8b554/sessions/protocol-73430003652037",
+          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-38990003782307")
+  ), #travazap filter
 
   historico AS (
       SELECT
@@ -40,7 +44,8 @@ WITH marked_conversations AS (
           FORMAT_DATETIME("%d/%m/%Y às %H:%M", DATETIME(request_time, "America/Buenos_Aires")) AS horario,
           JSON_EXTRACT(response, '$.queryResult.parameters') AS parametros,
           request_time,
-          response
+          response,
+          ROW_NUMBER() OVER (PARTITION BY h.conversation_name, h.turn_position ORDER BY request_time DESC) AS row_num
       FROM rj-chatbot-dev.dialogflowcx.historico_conversas AS h
       INNER JOIN filtro_macrofluxos AS f
           ON f.conversation_name = h.conversation_name
@@ -53,6 +58,7 @@ WITH marked_conversations AS (
       LAG(codigo_servico_1746) OVER(PARTITION BY conversation_name ORDER BY turn_position) AS lag_codigo_servico_1746_1,
       LAG(codigo_servico_1746, 2) OVER(PARTITION BY conversation_name ORDER BY turn_position) AS lag_codigo_servico_1746_2
     FROM historico
+    WHERE row_num = 1 #fitro para garantir apenas 1 linha por par (conversation_name, turn_position)
   ),
 
   MarkedConversations AS (
@@ -278,8 +284,7 @@ compilation AS (
   LEFT JOIN turnos_em_identificacao_e_endereco as tie
     ON c.new_conversation_id = tie.new_conversation_id
   INNER JOIN
-    (SELECT * FROM marked_conversations
-  WHERE conversation_name NOT IN ("projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/fcd7f325-6095-4ce1-9757-6cc028b8b554/sessions/protocol-73430003652037", "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-38990003782307")) as n
+    (SELECT * FROM marked_conversations) as n
     ON c.conversation_name = n.conversation_name AND c.turn_position = n.turn_position
 )
 
