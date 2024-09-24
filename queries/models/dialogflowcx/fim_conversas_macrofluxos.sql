@@ -63,6 +63,7 @@ SELECT
         THEN "engajado"
     WHEN
       JSON_VALUE(JSON_EXTRACT(hist.response, '$.queryResult.intent.displayName')) = "voltar_inicio_padrao"
+      OR JSON_VALUE(JSON_EXTRACT(hist.response, '$.queryResult.intent.displayName')) = "encerra_sessao_padrao"
       THEN "desistência"
     WHEN
       JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_retorno')) = "erro_interno_timeout"
