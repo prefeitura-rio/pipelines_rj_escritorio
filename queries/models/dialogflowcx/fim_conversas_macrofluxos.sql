@@ -92,7 +92,7 @@ SELECT
     WHEN
       hist.turn_position = 2
       AND hist.nome_servico_1746 = "Serviço Não Mapeado"
-      THEN "soft_bounce"
+      THEN "timeout_usuario_pre_transacao" -- "soft_bounce"
     WHEN
       hist.turn_position = 2
       AND hist.nome_servico_1746 != "Serviço Não Mapeado"
