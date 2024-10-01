@@ -49,7 +49,7 @@ SELECT
         ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'VOLTAR')
         OR ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'SAIR')
       )
-      THEN "soft_bounce"
+      THEN  "timeout_usuario_pre_transacao" -- "soft_bounce" 
     WHEN
       hist.turn_position = 2
       THEN "timeout_usuario_pos_transacao"
@@ -79,7 +79,7 @@ SELECT
     WHEN
         ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'VOLTAR')
      OR ENDS_WITH(JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')), 'SAIR')
-     THEN "desistencia"
+     THEN "desistência"
     ELSE  "timeout_usuario_pos_transacao"
     END classificacao_conversa,
   CASE
