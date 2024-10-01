@@ -230,7 +230,7 @@ SELECT
         ENDS_WITH(hist.resposta_bot, 'VOLTAR')
         OR ENDS_WITH(hist.resposta_bot, 'SAIR')
       )
-      THEN "soft_bounce"
+      THEN "timeout_usuario_pre_transacao" -- "soft_bounce"
     WHEN
         ENDS_WITH(hist.resposta_bot, 'VOLTAR')
      OR ENDS_WITH(hist.resposta_bot, 'SAIR')
