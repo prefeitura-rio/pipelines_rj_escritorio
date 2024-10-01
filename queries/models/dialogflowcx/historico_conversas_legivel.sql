@@ -37,9 +37,9 @@ historico_macrofluxo AS (
 
 -- Combine rows where conversation_name does not exist in the other table
 (
-  SELECT hp.* 
+  SELECT hp.*
   FROM historico_padrao hp
-  LEFT JOIN historico_macrofluxo hm 
+  LEFT JOIN historico_macrofluxo hm
     ON hp.conversation_name = hm.conversation_name
   WHERE hm.conversation_name IS NULL
 
