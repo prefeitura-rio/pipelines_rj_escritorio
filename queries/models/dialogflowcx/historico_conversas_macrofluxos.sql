@@ -64,7 +64,10 @@ WITH marked_conversations AS (
   MarkedConversations AS (
       SELECT
           * EXCEPT(service_data_array),
-          service_data_array[OFFSET(0)] AS nome_servico_1746,
+          CASE 
+            WHEN service_data_array[OFFSET(0)] = "Serviço não mapeado"
+            THEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.servico_1746_descricao'))
+            ELSE service_data_array[OFFSET(0)] END AS nome_servico_1746,
           service_data_array[OFFSET(1)] AS estimativa_turnos_servico,
           service_data_array[OFFSET(2)] AS estimativa_turnos_menu,
           CASE
