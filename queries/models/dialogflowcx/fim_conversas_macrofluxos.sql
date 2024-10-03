@@ -58,12 +58,17 @@ SELECT
     WHEN hist.turn_position = 1 THEN "hard_bounce"
     WHEN
         #hist.turn_position > 2
-        hist.nome_servico_1746 = "Serviço Não Mapeado"
+        hist.nome_servico_1746 IN ("Serviço Não Mapeado", "CadÚnico")
         AND hist.fluxo = "CadÚnico"
         THEN "engajado"
     WHEN
-      JSON_VALUE(JSON_EXTRACT(hist.response, '$.queryResult.intent.displayName')) = "voltar_inicio_padrao"
-      OR JSON_VALUE(JSON_EXTRACT(hist.response, '$.queryResult.intent.displayName')) = "encerra_sessao_padrao"
+      JSON_VALUE(JSON_EXTRACT(hist.response, '$.queryResult.intent.displayName')) = "encerra_sessao_padrao"
+      AND hist.codigo_servico_1746 IS NULL
+      THEN "soft_bounce"
+    WHEN
+      (JSON_VALUE(JSON_EXTRACT(hist.response, '$.queryResult.intent.displayName')) = "voltar_inicio_padrao"
+      OR JSON_VALUE(JSON_EXTRACT(hist.response, '$.queryResult.intent.displayName')) = "encerra_sessao_padrao")
+      AND hist.codigo_servico_1746 IS NOT NULL
       THEN "desistência"
     WHEN
       JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_retorno')) = "erro_interno_timeout"
@@ -90,18 +95,12 @@ SELECT
       THEN "timeout interno"
     WHEN ENDS_WITH(resposta_bot, 'SAIR') THEN "engajado"
     WHEN
-      hist.turn_position = 2
-      AND hist.nome_servico_1746 = "Serviço Não Mapeado"
-      THEN "timeout_usuario_pre_transacao" -- "soft_bounce"
-    WHEN
-      hist.turn_position = 2
-      AND hist.nome_servico_1746 != "Serviço Não Mapeado"
+      hist.codigo_servico_1746 IS NOT NULL
       THEN "timeout_usuario_pos_transacao"
     WHEN
-        hist.turn_position > 2
-        AND hist.nome_servico_1746 = "Serviço Não Mapeado"
-        THEN "timeout_usuario_pre_transacao"
-    ELSE  "timeout_usuario_pos_transacao"
+      hist.codigo_servico_1746 IS NULL
+      THEN "timeout_usuario_pre_transacao" -- "soft_bounce"
+    ELSE  "nao_classificado"
     END classificacao_conversa,
 #####
   "sucesso" as status_final_conversa,
