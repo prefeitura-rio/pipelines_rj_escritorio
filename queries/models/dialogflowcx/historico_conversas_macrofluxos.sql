@@ -6,10 +6,10 @@ WITH marked_conversations AS (
     LEFT JOIN (
       SELECT 
         conversation_name,
+        turn_position,
         COUNT(*) AS contagem
       FROM rj-chatbot-dev.dialogflowcx.historico_conversas
-      WHERE turn_position = 1
-      GROUP BY conversation_name
+      GROUP BY conversation_name, turn_position
       HAVING COUNT(*) > 1
     ) AS bc
       ON h.conversation_name = bc.conversation_name
