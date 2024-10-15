@@ -1,22 +1,27 @@
 WITH historico_padrao AS (
   select
-    conversation_name as conversa_completa_id,
-    turn_position as conversa_completa_turn_position,
-    conversation_name,
-    turn_position,
-    JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')) as mensagem_cidadao,
-    JSON_VALUE(JSON_EXTRACT(derived_data, '$.agentUtterances')) as resposta_bot,
-    FORMAT_DATETIME("%d/%m/%Y às %H:%M", DATETIME(request_time, "America/Buenos_Aires")) as horario,
-    JSON_EXTRACT(response, '$.queryResult.parameters') as parametros,
-    request_time,
-    response
-  from `rj-chatbot-dev.dialogflowcx.historico_conversas`
-  WHERE conversation_name NOT IN (
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-62510003786190",
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-37270003820798",
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/fcd7f325-6095-4ce1-9757-6cc028b8b554/sessions/protocol-73430003652037",
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-38990003782307")
-  ORDER BY conversation_name, request_time ASC
+    h.conversation_name as conversa_completa_id,
+    h.turn_position as conversa_completa_turn_position,
+    h.conversation_name,
+    h.turn_position,
+    JSON_VALUE(JSON_EXTRACT(h.response, '$.queryResult.text')) as mensagem_cidadao,
+    JSON_VALUE(JSON_EXTRACT(h.derived_data, '$.agentUtterances')) as resposta_bot,
+    FORMAT_DATETIME("%d/%m/%Y às %H:%M", DATETIME(h.request_time, "America/Buenos_Aires")) as horario,
+    JSON_EXTRACT(h.response, '$.queryResult.parameters') as parametros,
+    h.request_time,
+    h.response
+  from `rj-chatbot-dev.dialogflowcx.historico_conversas` as h
+  LEFT JOIN (
+    SELECT
+      conversation_name,
+      turn_position,
+      COUNT(*) AS contagem
+    FROM rj-chatbot-dev.dialogflowcx.historico_conversas
+    GROUP BY conversation_name, turn_position
+    HAVING COUNT(*) > 1
+  ) AS bc
+    ON h.conversation_name = bc.conversation_name
+  WHERE bc.conversation_name IS NULL -- Remove conversations with more than one conversation where turn_position = 1, probably bot cases
 ),
 
 historico_macrofluxo AS (
@@ -32,7 +37,6 @@ historico_macrofluxo AS (
     request_time,
     response
   FROM {{ ref('historico_conversas_macrofluxos') }}
-  ORDER BY conversation_name, request_time ASC
 )
 
 -- Combine rows where conversation_name does not exist in the other table
