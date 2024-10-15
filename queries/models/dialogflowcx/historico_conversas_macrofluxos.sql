@@ -14,7 +14,7 @@ WITH marked_conversations AS (
     ) AS bc
       ON h.conversation_name = bc.conversation_name
     WHERE
-        turn_position = 1
+        h.turn_position = 1
         AND
         (
           JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName')) IN (
@@ -34,7 +34,7 @@ WITH marked_conversations AS (
           )
         )
         AND bc.conversation_name IS NULL
-  ), #travazap filter
+  ), --travazap filter
 
   historico AS (
       SELECT
