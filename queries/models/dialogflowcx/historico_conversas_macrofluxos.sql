@@ -2,9 +2,9 @@ WITH marked_conversations AS (
   WITH filtro_macrofluxos AS (
     SELECT DISTINCT
         h.conversation_name
-    FROM rj-chatbot-dev.dialogflowcx.historico_conversas as h 
+    FROM rj-chatbot-dev.dialogflowcx.historico_conversas as h
     LEFT JOIN (
-      SELECT 
+      SELECT
         conversation_name,
         turn_position,
         COUNT(*) AS contagem

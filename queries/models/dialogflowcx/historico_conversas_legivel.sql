@@ -12,7 +12,7 @@ WITH historico_padrao AS (
     h.response
   from `rj-chatbot-dev.dialogflowcx.historico_conversas` as h
   LEFT JOIN (
-    SELECT 
+    SELECT
       conversation_name,
       turn_position,
       COUNT(*) AS contagem
