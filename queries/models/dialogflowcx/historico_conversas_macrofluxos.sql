@@ -1,8 +1,18 @@
 WITH marked_conversations AS (
   WITH filtro_macrofluxos AS (
     SELECT DISTINCT
-        conversation_name
-    FROM rj-chatbot-dev.dialogflowcx.historico_conversas
+        h.conversation_name
+    FROM rj-chatbot-dev.dialogflowcx.historico_conversas as h 
+    LEFT JOIN (
+      SELECT 
+        conversation_name,
+        COUNT(*) AS contagem
+      FROM rj-chatbot-dev.dialogflowcx.historico_conversas
+      WHERE turn_position = 1
+      GROUP BY conversation_name
+      HAVING COUNT(*) > 1
+    ) AS bc
+      ON h.conversation_name = bc.conversation_name
     WHERE
         turn_position = 1
         AND
@@ -23,11 +33,7 @@ WITH marked_conversations AS (
             AND request_time >= '2024-08-02'
           )
         )
-        AND conversation_name NOT IN (
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-62510003786190",
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-37270003820798",
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/fcd7f325-6095-4ce1-9757-6cc028b8b554/sessions/protocol-73430003652037",
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-38990003782307")
+        AND bc.conversation_name IS NULL
   ), #travazap filter
 
   historico AS (
