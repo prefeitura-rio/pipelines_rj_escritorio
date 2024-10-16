@@ -93,8 +93,8 @@ SELECT
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_endereco_abertura_chamado_justificativa')) = "erro_desconhecido"
       OR JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.rebi_elegibilidade_abertura_chamado_justificativa')) = "erro_desconhecido"
       THEN "timeout interno"
-    WHEN 
-      ENDS_WITH(resposta_bot, 'SAIR') 
+    WHEN
+      ENDS_WITH(resposta_bot, 'SAIR')
       OR hist.passo = "Finalizar Atendimento"
       THEN "engajado"
     WHEN
