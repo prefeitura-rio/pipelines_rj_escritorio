@@ -27,6 +27,29 @@ SELECT
   MAX(new_turn) as last_turn
 FROM compilation
 GROUP BY new_conversation_id
+)
+
+, penultimo_turno_0 as (
+SELECT
+  new_conversation_id,
+  MAX(new_turn) as penultimate_turn,
+FROM compilation
+WHERE new_turn < (
+    SELECT MAX(new_turn)
+    FROM compilation AS c2
+    WHERE c2.new_conversation_id = compilation.new_conversation_id
+  )
+GROUP BY new_conversation_id
+)
+
+, penultimo_passo as (
+SELECT
+  p0.new_conversation_id,
+  penultimate_turn,
+  c.passo
+FROM penultimo_turno_0 as p0
+INNER JOIN compilation as c
+  ON p0.penultimate_turn = c.new_turn AND p0.new_conversation_id = c.new_conversation_id
 ),
 
 fim_conversas_macrofluxo AS (
@@ -96,6 +119,7 @@ SELECT
     WHEN
       ENDS_WITH(resposta_bot, 'SAIR')
       OR hist.passo = "Finalizar Atendimento"
+      OR pen.passo = "Finalizar Atendimento"  -- Verificação do penúltimo turno
       THEN "engajado"
     WHEN
       hist.codigo_servico_1746 IS NOT NULL
@@ -137,6 +161,8 @@ INNER JOIN ultima_interacao as ui
   ON hist.new_conversation_id = ui.new_conversation_id AND hist.new_turn = ui.last_turn
 INNER JOIN primeira_interacao as pi
   ON hist.new_conversation_id = pi.new_conversation_id
+LEFT JOIN penultimo_passo AS pen
+  ON hist.new_conversation_id = pen.new_conversation_id -- Junta com o penúltimo turno
 ORDER BY request_time DESC)
 
 SELECT * FROM fim_conversas_macrofluxo
