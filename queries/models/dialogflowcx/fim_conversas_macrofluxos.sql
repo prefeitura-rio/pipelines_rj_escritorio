@@ -161,7 +161,7 @@ INNER JOIN ultima_interacao as ui
   ON hist.new_conversation_id = ui.new_conversation_id AND hist.new_turn = ui.last_turn
 INNER JOIN primeira_interacao as pi
   ON hist.new_conversation_id = pi.new_conversation_id
-LEFT JOIN penultimo_passo AS pen 
+LEFT JOIN penultimo_passo AS pen
   ON hist.new_conversation_id = pen.new_conversation_id -- Junta com o penúltimo turno
 ORDER BY request_time DESC)
 
