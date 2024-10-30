@@ -123,6 +123,7 @@ SELECT
       THEN "engajado"
     WHEN
       hist.codigo_servico_1746 IS NOT NULL
+      OR hist.nome_servico_1746 != "Serviço Não Mapeado"
       THEN "timeout_usuario_pos_transacao"
     WHEN
       hist.codigo_servico_1746 IS NULL
