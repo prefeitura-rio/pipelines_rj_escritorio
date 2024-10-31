@@ -138,10 +138,19 @@ def cleanup_unused(
 
 
 @task
-def compute_aggregate_data(realizacoes: list[dict]):
+def compute_aggregate_data(realizacoes: list[dict], version: str = None):
     """
     Pre-computes aggregated data for Firebase.
     """
+    # If we have a version, filter out the realizacoes that do not match the version
+    if version:
+        version = version.upper()
+        if version == "PLANO_VERAO":
+            realizacoes = [
+                realizacao for realizacao in realizacoes if realizacao["data"]["plano_verao"]
+            ]
+        else:
+            raise ValueError(f"Invalid version for aggregating data: {version}.")
     aggregated_data = collections.defaultdict(lambda: {"count": 0, "investment": 0})
     for realizacao in realizacoes:
         data = realizacao["data"]

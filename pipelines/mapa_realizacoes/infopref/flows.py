@@ -189,9 +189,18 @@ with Flow(
     all_realizacoes = merge_lists(list_a=realizacoes_filtered, list_b=realizacoes_pin_only)
 
     aggregated_data = compute_aggregate_data(realizacoes=realizacoes_nova_gestao)
+    aggregated_data_plano_verao = compute_aggregate_data(
+        realizacoes=realizacoes_nova_gestao, version="PLANO_VERAO"
+    )
 
     upload_aggregated_data_task = upload_aggregated_data_to_firestore(
         data=aggregated_data, db=db, collection="aggregated_data", clear=clear
+    )
+    upload_aggregated_data_planoverao_task = upload_aggregated_data_to_firestore(
+        data=aggregated_data_plano_verao,
+        db=db,
+        collection="aggregated_data__planoverao",
+        clear=clear,
     )
     upload_cidades_task = upload_infopref_data_to_firestore(
         data=clean_cidades, db=db, collection="cidade", clear=clear
@@ -226,6 +235,7 @@ with Flow(
 
     log_task_ref = log_task(msg="This is the end.")
     log_task_ref.set_upstream(upload_aggregated_data_task)
+    log_task_ref.set_upstream(upload_aggregated_data_planoverao_task)
     log_task_ref.set_upstream(upload_cidades_task)
     log_task_ref.set_upstream(upload_orgaos_task)
     log_task_ref.set_upstream(upload_programas_task)
