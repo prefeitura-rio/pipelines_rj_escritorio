@@ -623,6 +623,37 @@ def transform_infopref_realizacao_to_firebase(
             if not subprefeitura_doc.exists:
                 log(f"Could not find subprefeitura with id {id_subprefeitura}.", "warning")
 
+        # Plano verão stuff
+        plano_verao = entry["plano_verao"].lower() == "sim"
+        if plano_verao:
+            pv_ano_aplicacao = entry["pv_ano_aplicacao"] if "pv_ano_aplicacao" in entry else None
+            pv_tipo_iniciativa = (
+                entry["pv_tipo_iniciativa"] if "pv_tipo_iniciativa" in entry else None
+            )
+            pv_tipo_iniciativa2 = (
+                entry["pv_tipo_iniciativa2"] if "pv_tipo_iniciativa2" in entry else None
+            )
+            pv_perigo_climatico = (
+                entry["pv_perigo_climatico"] if "pv_perigo_climatico" in entry else None
+            )
+            pv_perigo_climatico2 = (
+                entry["pv_perigo_climatico2"] if "pv_perigo_climatico2" in entry else None
+            )
+            pv_status_verificacao = (
+                entry["pv_status_verificacao"] if "pv_status_verificacao" in entry else None
+            )
+            pv_status_verificacao2 = (
+                entry["pv_status_verificacao2"] if "pv_status_verificacao2" in entry else None
+            )
+        else:
+            pv_ano_aplicacao = None
+            pv_tipo_iniciativa = None
+            pv_tipo_iniciativa2 = None
+            pv_perigo_climatico = None
+            pv_perigo_climatico2 = None
+            pv_status_verificacao = None
+            pv_status_verificacao2 = None
+
         data = {
             "cariocas_atendidos": cariocas_atendidos,
             "coords": coords,
@@ -644,6 +675,14 @@ def transform_infopref_realizacao_to_firebase(
             "image_url": image_url,
             "investimento": investimento,
             "nome": nome,
+            "plano_verao": plano_verao,
+            "pv_ano_aplicacao": pv_ano_aplicacao,
+            "pv_perigo_climatico": pv_perigo_climatico,
+            "pv_perigo_climatico2": pv_perigo_climatico2,
+            "pv_status_verificacao": pv_status_verificacao,
+            "pv_status_verificacao2": pv_status_verificacao2,
+            "pv_tipo_iniciativa": pv_tipo_iniciativa,
+            "pv_tipo_iniciativa2": pv_tipo_iniciativa2,
         }
         log(f"Transformed entry: {data}")
         return {"id": to_snake_case(nome), "data": data}
