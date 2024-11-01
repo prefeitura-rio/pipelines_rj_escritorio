@@ -638,7 +638,21 @@ def transform_infopref_realizacao_to_firebase(
                 log(f"Could not find subprefeitura with id {id_subprefeitura}.", "warning")
 
         # Plano verão stuff
-        plano_verao = entry["plano_verao"].lower() == "sim"
+
+        # Begin by checking if the `plano_verao` tag is enabled or it's from programa
+        # `bairro_maravilha`
+        plano_verao = entry["plano_verao"].lower() == "sim" or id_programa == "bairro_maravilha"
+
+        # Then, if 2024 or 2025 is in the `pv_ano_aplicacao` text, we consider it as a Plano Verão.
+        # Else, we disable the Plano Verão tag.
+        if plano_verao:
+            pv_ano_aplicacao = entry["pv_ano_aplicacao"] if "pv_ano_aplicacao" in entry else None
+            if not pv_ano_aplicacao:
+                plano_verao = False
+            elif not ("2024" in entry["pv_ano_aplicacao"] or "2025" in entry["pv_ano_aplicacao"]):
+                plano_verao = False
+
+        # If it's a Plano Verão, we get the Plano Verão fields
         if plano_verao:
             pv_ano_aplicacao = entry["pv_ano_aplicacao"] if "pv_ano_aplicacao" in entry else None
             pv_tipo_iniciativa = (
