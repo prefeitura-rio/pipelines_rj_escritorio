@@ -26,7 +26,7 @@ from pipelines.mapa_realizacoes.infopref.utils import (
 from pipelines.utils import authenticated_task as task
 
 
-@task(nout=5, checkpoint=False)
+@task(nout=5)
 def cleanup_unused(
     cidades: List[dict],
     orgaos: List[dict],
@@ -216,12 +216,12 @@ def get_infopref_url(url_secret: str = "INFOPREF_URL") -> str:
     return get_secret(url_secret)[url_secret]
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_bairro() -> list[dict]:
     return []  # TODO: Implement (future)
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_cidade() -> list[dict]:
     return [
         {
@@ -233,7 +233,7 @@ def get_infopref_cidade() -> list[dict]:
     ]
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_orgao(url_orgao: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_orgao, headers)
     data = []
@@ -256,7 +256,7 @@ def get_infopref_orgao(url_orgao: str, headers: dict) -> list[dict]:
     return data
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_programa(url_programa: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_programa, headers)
     data = []
@@ -280,13 +280,13 @@ def get_infopref_programa(url_programa: str, headers: dict) -> list[dict]:
     return data
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_realizacao_raw(url_realizacao: str, headers: dict) -> list[dict]:
     realizacoes = fetch_data(url_realizacao, headers)
     return realizacoes
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_status() -> list[dict]:
     return [
         {
@@ -322,12 +322,12 @@ def get_infopref_status() -> list[dict]:
     ]
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_subprefeitura() -> list[dict]:
     return []  # TODO: Implement (future)
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_tema, headers)
     data = []
@@ -349,7 +349,7 @@ def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
     return data
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_tipo() -> list[dict]:
     return []  # TODO: Implement (future)
 
@@ -368,8 +368,13 @@ def load_firestore_credential_to_file(secret_name: str = "FIRESTORE_CREDENTIALS"
         f.write(credentials)
 
 
-@task(checkpoint=False)
+@task
 def merge_lists(list_a: list, list_b: list) -> list:
+    return list_a + list_b
+
+
+@task(checkpoint=False)
+def merge_lists_no_checkpoint(list_a: list, list_b: list) -> list:
     return list_a + list_b
 
 
