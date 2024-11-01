@@ -29,6 +29,7 @@ from pipelines.mapa_realizacoes.infopref.tasks import (
     load_firestore_credential_to_file,
     log_task,
     merge_lists,
+    merge_lists_no_checkpoint,
     split_by_gestao,
     transform_csv_to_pin_only_realizacoes,
     transform_infopref_realizacao_to_firebase,
@@ -107,7 +108,7 @@ with Flow(
         gestao="3",
     )
 
-    realizacoes_alarme_alertario = merge_lists(
+    realizacoes_alarme_alertario = merge_lists_no_checkpoint(
         list_a=realizacoes_alarme_sonoro, list_b=realizacoes_alertario
     )
 
@@ -120,7 +121,7 @@ with Flow(
         gestao="3",
     )
 
-    realizacoes_pin_only = merge_lists(
+    realizacoes_pin_only = merge_lists_no_checkpoint(
         list_a=realizacoes_alarme_alertario, list_b=realizacoes_cameras
     )
 
@@ -186,7 +187,9 @@ with Flow(
         ],
     )
 
-    all_realizacoes = merge_lists(list_a=realizacoes_filtered, list_b=realizacoes_pin_only)
+    all_realizacoes = merge_lists_no_checkpoint(
+        list_a=realizacoes_filtered, list_b=realizacoes_pin_only
+    )
 
     aggregated_data = compute_aggregate_data(realizacoes=realizacoes_nova_gestao)
     aggregated_data_plano_verao = compute_aggregate_data(
