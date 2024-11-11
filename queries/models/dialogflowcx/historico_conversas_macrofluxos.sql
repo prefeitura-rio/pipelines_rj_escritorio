@@ -77,10 +77,10 @@ WITH marked_conversations AS (
           service_data_array[OFFSET(1)] AS estimativa_turnos_servico,
           service_data_array[OFFSET(2)] AS estimativa_turnos_menu,
           CASE
-              WHEN lag_codigo_servico_1746_1 IS NULL AND codigo_servico_1746 IS NOT NULL THEN 0
               WHEN lag_codigo_servico_1746_2 IS NOT NULL AND codigo_servico_1746 IS NULL THEN 1
-              WHEN lag_codigo_servico_1746_1 IS NOT NULL
-                  AND lag_codigo_servico_1746_1 != codigo_servico_1746 THEN 1
+              WHEN lag_codigo_servico_1746_1 IS NOT NULL AND lag_codigo_servico_1746_1 != codigo_servico_1746 THEN 1
+              WHEN lag_codigo_servico_1746_2 IS NOT NULL AND lag_codigo_servico_1746_1 IS NULL AND codigo_servico_1746 IS NOT NULL THEN 1
+              WHEN lag_codigo_servico_1746_1 IS NULL AND codigo_servico_1746 IS NOT NULL THEN 0
               ELSE 0
           END AS isNewPart
       FROM historico_with_lag
