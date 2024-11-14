@@ -163,7 +163,6 @@ INNER JOIN ultima_interacao as ui
 INNER JOIN primeira_interacao as pi
   ON hist.new_conversation_id = pi.new_conversation_id
 LEFT JOIN penultimo_passo AS pen
-  ON hist.new_conversation_id = pen.new_conversation_id -- Junta com o penúltimo turno
-ORDER BY request_time DESC)
+  ON hist.new_conversation_id = pen.new_conversation_id -- Junta com o penúltimo turno)
 
 SELECT * FROM fim_conversas_macrofluxo
