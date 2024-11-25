@@ -128,19 +128,22 @@ ORDER BY request_time DESC)
 
 SELECT
   *,
-  JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.codigo_servico_1746')) as codigo_servico
+  JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.codigo_servico_1746')) as codigo_servico,
+  JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.teste_ab_versao')) as teste_ab_versao
 FROM fim_conversas_1746
 
 UNION ALL
 
 SELECT
   *,
-  JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.codigo_servico_1746')) as codigo_servico
+  JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.codigo_servico_1746')) as codigo_servico,
+  JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.teste_ab_versao')) as teste_ab_versao
 FROM {{ ref('fim_conversas_da') }}
 
 UNION ALL
 
 SELECT
   *,
-  JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.codigo_servico_1746')) as codigo_servico
+  JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.codigo_servico_1746')) as codigo_servico,
+  JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.teste_ab_versao')) as teste_ab_versao
 FROM {{ ref('fim_conversas_macrofluxos') }}
