@@ -26,20 +26,10 @@ models:
         description: Motivo da Situação Cadastral
       - name: nome_cidade_exterior
         description: Nome da Cidade no Exterior
-      - name: id_pais
+      - name: pais
         description: ID País
       - name: data_inicio_atividade
         description: Data de Início da Atividade
-      - name: cnae_fiscal_principal
-        description: CNAE Fiscal Principal
-      - name: cnae_fiscal_secundaria
-        description: CNAEs Fiscais Secundárias
-      - name: sigla_uf
-        description: Sigla da Unidade da Federação
-      - name: id_municipio
-        description: ID Município - IBGE 7 Dígitos
-      - name: id_municipio_rf
-        description: ID Município - Receita Federal
       - name: tipo_logradouro
         description: Tipo de Logradouro
       - name: logradouro
@@ -70,8 +60,22 @@ models:
         description: Situação Especial
       - name: data_situacao_especial
         description: Data da Situação Especial
-      - name: cnpj_particao
-        description: CNPJ para particionamento
+
+      - name: cnae
+        description: Informações sobre CNAE 2.0
+      - name: cnae.cnae
+        description: Identificador do subgrupo do CNAE
+      - name: cnae.descricao_subclasse
+        description: Descrição da subclasse do CNAE
+      - name: cnae.descricao_classe
+        description: Descrição da classe do CNAE
+      - name: cnae.descricao_grupo
+        description: Descrição do grupo do CNAE
+      - name: cnae.descricao_divisao
+        description: Descrição da divisão do CNAE
+      - name: cnae.descricao_secao
+        description: Descrição da seção do CNAE
+
       - name: socios
         description: Informações sobre os sócios
       - name: socios.tipo
@@ -84,7 +88,7 @@ models:
         description: Qualificação do sócio
       - name: socios.data_entrada_sociedade
         description: Data de entrada na sociedade
-      - name: socios.id_pais
+      - name: socios.pais
         description: ID País
       - name: socios.cpf_representante_legal
         description: CPF mascarado do Representante Legal
@@ -94,3 +98,6 @@ models:
         description: Qualificação do Representante Legal
       - name: socios.faixa_etaria
         description: Faixa Etária
+
+      - name: cnpj_particao
+        description: CNPJ para particionamento
