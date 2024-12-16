@@ -178,7 +178,7 @@ compilation_0 AS (
 SELECT
     n.new_conversation_id,
     #INITCAP(n.macrotema) as macrotema,
-    CASE 
+    CASE
       WHEN LOWER(nome_servico) LIKE "%matricula%"
         OR LOWER(nome_servico) LIKE "%matrícula%"
       THEN "Matrícula Municipal"
