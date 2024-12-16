@@ -17,7 +17,7 @@ primeira_interacao AS (
   FROM `rj-chatbot-dev.dialogflowcx.historico_conversas`
   WHERE
     turn_position = 1
-    # AND `rj-chatbot-dev.dialogflowcx.inicial_sentences`(JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')))
+    -- AND `rj-chatbot-dev.dialogflowcx.inicial_sentences`(JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')))
     AND JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.match.matchType')) != "PLAYBOOK"
 ),
 
@@ -30,7 +30,7 @@ duplicate_conversations AS (
   GROUP BY conversation_name, turn_position
   HAVING COUNT(*) > 1
 ),
-hist AS (_
+hist AS (
   SELECT
     h.*
   FROM `rj-chatbot-dev.dialogflowcx.historico_conversas` AS h
