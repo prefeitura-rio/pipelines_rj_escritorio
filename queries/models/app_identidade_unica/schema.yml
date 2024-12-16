@@ -72,3 +72,25 @@ models:
         description: Data da Situação Especial
       - name: cnpj_particao
         description: CNPJ para particionamento
+      - name: socios
+        description: Informações sobre os sócios
+      - name: socios.tipo
+        description: Tipo de sócio, se é pessoa física ou jurídica
+      - name: socios.nome
+        description: Nome do sócio
+      - name: socios.documento
+        description: Documento (CPF mascarado ou CNPJ)
+      - name: socios.qualificacao
+        description: Qualificação do sócio
+      - name: socios.data_entrada_sociedade
+        description: Data de entrada na sociedade
+      - name: socios.id_pais
+        description: ID País
+      - name: socios.cpf_representante_legal
+        description: CPF mascarado do Representante Legal
+      - name: socios.nome_representante_legal
+        description: Nome do Representante Legal
+      - name: socios.qualificacao_representante_legal
+        description: Qualificação do Representante Legal
+      - name: socios.faixa_etaria
+        description: Faixa Etária
