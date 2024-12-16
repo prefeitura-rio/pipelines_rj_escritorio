@@ -80,9 +80,11 @@ SELECT
     WHEN JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.solicitacao_protocolo')) IS NOT NULL THEN "chamado_aberto"
     WHEN hist.turn_position = 1 THEN "hard_bounce"
     WHEN
-        #hist.turn_position > 2
-        hist.nome_servico_1746 IN ("Serviço Não Mapeado", "CadÚnico")
-        AND hist.fluxo = "CadÚnico"
+        -- hist.turn_position > 2
+        (hist.nome_servico_1746 IN ("Serviço Não Mapeado")
+          AND hist.fluxo = "CadÚnico")
+        OR
+        (hist.nome_servico_1746 IN ("CadÚnico", "Matrícula Municipal"))
         THEN "engajado"
     WHEN
       JSON_VALUE(JSON_EXTRACT(hist.response, '$.queryResult.intent.displayName')) = "encerra_sessao_padrao"
