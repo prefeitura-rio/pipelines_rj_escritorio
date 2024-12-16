@@ -21,31 +21,29 @@ primeira_interacao AS (
     AND JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.match.matchType')) != "PLAYBOOK"
 ),
 
-hist AS (
+duplicate_conversations AS (
+  SELECT
+    conversation_name,
+    turn_position,
+    COUNT(*) AS contagem
+  FROM `rj-chatbot-dev.dialogflowcx.historico_conversas`
+  GROUP BY conversation_name, turn_position
+  HAVING COUNT(*) > 1
+),
+hist AS (_
   SELECT
     h.*
   FROM `rj-chatbot-dev.dialogflowcx.historico_conversas` AS h
-  LEFT JOIN (
-      SELECT
-        conversation_name,
-        turn_position,
-        COUNT(*) AS contagem
-      FROM rj-chatbot-dev.dialogflowcx.historico_conversas
-      GROUP BY conversation_name, turn_position
-      HAVING COUNT(*) > 1
-    ) AS bc
-      ON h.conversation_name = bc.conversation_name
-  WHERE NOT EXISTS (
-    SELECT 1
-    FROM {{ ref('fim_conversas_da') }} AS da
-    WHERE h.conversation_name = da.conversation_name
-  )
-  AND NOT EXISTS (
-    SELECT 1
-    FROM {{ ref('fim_conversas_macrofluxos') }} AS mf
-    WHERE h.conversation_name = mf.conversation_name
-  )
-  AND bc.conversation_name IS NULL
+  LEFT JOIN {{ ref('fim_conversas_da') }} AS da
+    ON STARTS_WITH(da.conversation_name, h.conversation_name)
+  LEFT JOIN {{ ref('fim_conversas_macrofluxos') }} AS mf
+    ON STARTS_WITH(mf.conversation_name, h.conversation_name)
+  LEFT JOIN duplicate_conversations AS bc
+    ON h.conversation_name = bc.conversation_name
+       AND h.turn_position = bc.turn_position
+  WHERE da.conversation_name IS NULL
+    AND mf.conversation_name IS NULL
+    AND bc.conversation_name IS NULL
 ),
 
 fim_conversas_1746 AS (
