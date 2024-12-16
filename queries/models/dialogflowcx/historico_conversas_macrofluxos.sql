@@ -32,6 +32,10 @@ WITH marked_conversations AS (
             JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentPage.displayName')) = 'Menu Principal'
             AND request_time >= '2024-08-02'
           )
+          OR
+          (
+            JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.match.matchType')) = "PLAYBOOK"
+          )
         )
         AND bc.conversation_name IS NULL
   ), --travazap filter

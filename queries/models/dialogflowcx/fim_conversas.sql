@@ -10,14 +10,42 @@ GROUP BY conversation_name
 primeira_interacao AS (
   SELECT
     conversation_name,
-    `rj-chatbot-dev.dialogflowcx.inicial_sentence_to_flow_name`(JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text'))) AS fluxo_primeira_interacao,
+    `rj-chatbot-dev.dialogflowcx`.inicial_sentence_to_flow_name(JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text'))) as fluxo_primeira_interacao,
     request_time AS hora_primeira_interacao,
     JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')) AS primeira_mensagem,
     JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.parameters.ambiente')) AS ambiente
   FROM `rj-chatbot-dev.dialogflowcx.historico_conversas`
   WHERE
     turn_position = 1
-    AND `rj-chatbot-dev.dialogflowcx.inicial_sentences`(JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')))
+    # AND `rj-chatbot-dev.dialogflowcx.inicial_sentences`(JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')))
+    AND JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.match.matchType')) != "PLAYBOOK"
+),
+
+hist AS (
+  SELECT
+    h.*
+  FROM `rj-chatbot-dev.dialogflowcx.historico_conversas` AS h
+  LEFT JOIN (
+      SELECT
+        conversation_name,
+        turn_position,
+        COUNT(*) AS contagem
+      FROM rj-chatbot-dev.dialogflowcx.historico_conversas
+      GROUP BY conversation_name, turn_position
+      HAVING COUNT(*) > 1
+    ) AS bc
+      ON h.conversation_name = bc.conversation_name
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM {{ ref('fim_conversas_da') }} AS da
+    WHERE h.conversation_name = da.conversation_name
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM {{ ref('fim_conversas_macrofluxos') }} AS mf
+    WHERE h.conversation_name = mf.conversation_name
+  )
+  AND bc.conversation_name IS NULL
 ),
 
 fim_conversas_1746 AS (
@@ -119,7 +147,7 @@ SELECT
   SAFE_CAST(NULL AS INT64) AS conversa_completa_fluxos_interagidos,
   SAFE_CAST(NULL AS INT64) AS conversa_completa_duracao,
   SAFE_CAST(NULL AS STRING) AS conversa_completa_ultimo_fluxo_servico,
-FROM `rj-chatbot-dev.dialogflowcx.historico_conversas` as hist
+FROM hist
 INNER JOIN ultima_interacao as ui
   ON hist.conversation_name = ui.conversation_name AND hist.turn_position = ui.last_turn
 INNER JOIN primeira_interacao as pi
