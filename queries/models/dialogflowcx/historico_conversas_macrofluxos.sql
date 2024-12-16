@@ -32,6 +32,10 @@ WITH marked_conversations AS (
             JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentPage.displayName')) = 'Menu Principal'
             AND request_time >= '2024-08-02'
           )
+          OR
+          (
+            JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.match.matchType')) = "PLAYBOOK"
+          )
         )
         AND bc.conversation_name IS NULL
   ), --travazap filter
@@ -77,10 +81,10 @@ WITH marked_conversations AS (
           service_data_array[OFFSET(1)] AS estimativa_turnos_servico,
           service_data_array[OFFSET(2)] AS estimativa_turnos_menu,
           CASE
-              WHEN lag_codigo_servico_1746_1 IS NULL AND codigo_servico_1746 IS NOT NULL THEN 0
               WHEN lag_codigo_servico_1746_2 IS NOT NULL AND codigo_servico_1746 IS NULL THEN 1
-              WHEN lag_codigo_servico_1746_1 IS NOT NULL
-                  AND lag_codigo_servico_1746_1 != codigo_servico_1746 THEN 1
+              WHEN lag_codigo_servico_1746_1 IS NOT NULL AND lag_codigo_servico_1746_1 != codigo_servico_1746 THEN 1
+              WHEN lag_codigo_servico_1746_2 IS NOT NULL AND lag_codigo_servico_1746_1 IS NULL AND codigo_servico_1746 IS NOT NULL THEN 1
+              WHEN lag_codigo_servico_1746_1 IS NULL AND codigo_servico_1746 IS NOT NULL THEN 0
               ELSE 0
           END AS isNewPart
       FROM historico_with_lag
@@ -174,7 +178,14 @@ compilation_0 AS (
 SELECT
     n.new_conversation_id,
     #INITCAP(n.macrotema) as macrotema,
-    INITCAP(s.nome_servico) as nome_servico_1746,
+    CASE
+      WHEN LOWER(nome_servico) LIKE "%matricula%"
+        OR LOWER(nome_servico) LIKE "%matrícula%"
+      THEN "Matrícula Municipal"
+      WHEN LOWER(nome_servico) LIKE "%cadunico%"
+        OR LOWER(nome_servico) LIKE "%cadúnico%"
+      THEN "CadÚnico"
+    ELSE INITCAP(s.nome_servico) END as nome_servico_1746,
     #n.mensagem_cidadao,
     #n.resposta_bot,
     n.turn_position,
