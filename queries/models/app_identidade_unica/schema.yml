@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: empresas
+    description: Tabela de CNPJs dos estabelecimentos do Rio de Janeiro
+    columns:
+      - name: data
+        description: Data
+      - name: cnpj
+        description: CNPJ
+      - name: cnpj_basico
+        description: CNPJ Básico (8 primeiros dígitos)
+      - name: cnpj_ordem
+        description: CNPJ Ordem
+      - name: cnpj_dv
+        description: CNPJ Dígito Verificador
+      - name: identificador_matriz_filial
+        description: Identificador de Matriz ou Filial
+      - name: nome_fantasia
+        description: Nome Fantasia
+      - name: situacao_cadastral
+        description: Situação Cadastral
+      - name: data_situacao_cadastral
+        description: Data da Situação Cadastral
+      - name: motivo_situacao_cadastral
+        description: Motivo da Situação Cadastral
+      - name: nome_cidade_exterior
+        description: Nome da Cidade no Exterior
+      - name: id_pais
+        description: ID País
+      - name: data_inicio_atividade
+        description: Data de Início da Atividade
+      - name: cnae_fiscal_principal
+        description: CNAE Fiscal Principal
+      - name: cnae_fiscal_secundaria
+        description: CNAEs Fiscais Secundárias
+      - name: sigla_uf
+        description: Sigla da Unidade da Federação
+      - name: id_municipio
+        description: ID Município - IBGE 7 Dígitos
+      - name: id_municipio_rf
+        description: ID Município - Receita Federal
+      - name: tipo_logradouro
+        description: Tipo de Logradouro
+      - name: logradouro
+        description: Logradouro
+      - name: numero
+        description: Número
+      - name: complemento
+        description: Complemento
+      - name: bairro
+        description: Bairro
+      - name: cep
+        description: CEP
+      - name: ddd_1
+        description: DDD 1
+      - name: telefone_1
+        description: Telefone 1
+      - name: ddd_2
+        description: DDD 2
+      - name: telefone_2
+        description: Telefone 2
+      - name: ddd_fax
+        description: DDD Fax
+      - name: fax
+        description: Fax
+      - name: email
+        description: Email
+      - name: situacao_especial
+        description: Situação Especial
+      - name: data_situacao_especial
+        description: Data da Situação Especial
+      - name: cnpj_particao
+        description: CNPJ para particionamento
