@@ -26,7 +26,7 @@ from pipelines.mapa_realizacoes.infopref.utils import (
 from pipelines.utils import authenticated_task as task
 
 
-@task(nout=5, checkpoint=False)
+@task(nout=5)
 def cleanup_unused(
     cidades: List[dict],
     orgaos: List[dict],
@@ -138,10 +138,19 @@ def cleanup_unused(
 
 
 @task
-def compute_aggregate_data(realizacoes: list[dict]):
+def compute_aggregate_data(realizacoes: list[dict], version: str = None):
     """
     Pre-computes aggregated data for Firebase.
     """
+    # If we have a version, filter out the realizacoes that do not match the version
+    if version:
+        version = version.upper()
+        if version == "PLANO_VERAO":
+            realizacoes = [
+                realizacao for realizacao in realizacoes if realizacao["data"]["plano_verao"]
+            ]
+        else:
+            raise ValueError(f"Invalid version for aggregating data: {version}.")
     aggregated_data = collections.defaultdict(lambda: {"count": 0, "investment": 0})
     for realizacao in realizacoes:
         data = realizacao["data"]
@@ -207,12 +216,12 @@ def get_infopref_url(url_secret: str = "INFOPREF_URL") -> str:
     return get_secret(url_secret)[url_secret]
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_bairro() -> list[dict]:
     return []  # TODO: Implement (future)
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_cidade() -> list[dict]:
     return [
         {
@@ -224,7 +233,7 @@ def get_infopref_cidade() -> list[dict]:
     ]
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_orgao(url_orgao: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_orgao, headers)
     data = []
@@ -247,7 +256,7 @@ def get_infopref_orgao(url_orgao: str, headers: dict) -> list[dict]:
     return data
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_programa(url_programa: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_programa, headers)
     data = []
@@ -271,13 +280,13 @@ def get_infopref_programa(url_programa: str, headers: dict) -> list[dict]:
     return data
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_realizacao_raw(url_realizacao: str, headers: dict) -> list[dict]:
     realizacoes = fetch_data(url_realizacao, headers)
     return realizacoes
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_status() -> list[dict]:
     return [
         {
@@ -313,12 +322,12 @@ def get_infopref_status() -> list[dict]:
     ]
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_subprefeitura() -> list[dict]:
     return []  # TODO: Implement (future)
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
     raw_data = fetch_data(url_tema, headers)
     data = []
@@ -340,7 +349,7 @@ def get_infopref_tema(url_tema: str, headers: dict) -> list[dict]:
     return data
 
 
-@task(checkpoint=False)
+@task
 def get_infopref_tipo() -> list[dict]:
     return []  # TODO: Implement (future)
 
@@ -359,8 +368,13 @@ def load_firestore_credential_to_file(secret_name: str = "FIRESTORE_CREDENTIALS"
         f.write(credentials)
 
 
-@task(checkpoint=False)
+@task
 def merge_lists(list_a: list, list_b: list) -> list:
+    return list_a + list_b
+
+
+@task(checkpoint=False)
+def merge_lists_no_checkpoint(list_a: list, list_b: list) -> list:
     return list_a + list_b
 
 
@@ -623,6 +637,51 @@ def transform_infopref_realizacao_to_firebase(
             if not subprefeitura_doc.exists:
                 log(f"Could not find subprefeitura with id {id_subprefeitura}.", "warning")
 
+        # Plano verão stuff
+
+        # Begin by checking if the `plano_verao` tag is enabled or it's from programa
+        # `bairro_maravilha`
+        plano_verao = entry["plano_verao"].lower() == "sim" or id_programa == "bairro_maravilha"
+
+        # Then, if 2024 or 2025 is in the `pv_ano_aplicacao` text, we consider it as a Plano Verão.
+        # Else, we disable the Plano Verão tag.
+        if plano_verao:
+            pv_ano_aplicacao = entry["pv_ano_aplicacao"] if "pv_ano_aplicacao" in entry else None
+            if not pv_ano_aplicacao:
+                plano_verao = False
+            elif not ("2024" in entry["pv_ano_aplicacao"] or "2025" in entry["pv_ano_aplicacao"]):
+                plano_verao = False
+
+        # If it's a Plano Verão, we get the Plano Verão fields
+        if plano_verao:
+            pv_ano_aplicacao = entry["pv_ano_aplicacao"] if "pv_ano_aplicacao" in entry else None
+            pv_tipo_iniciativa = (
+                entry["pv_tipo_iniciativa"] if "pv_tipo_iniciativa" in entry else None
+            )
+            pv_tipo_iniciativa2 = (
+                entry["pv_tipo_iniciativa2"] if "pv_tipo_iniciativa2" in entry else None
+            )
+            pv_perigo_climatico = (
+                entry["pv_perigo_climatico"] if "pv_perigo_climatico" in entry else None
+            )
+            pv_perigo_climatico2 = (
+                entry["pv_perigo_climatico2"] if "pv_perigo_climatico2" in entry else None
+            )
+            pv_status_verificacao = (
+                entry["pv_status_verificacao"] if "pv_status_verificacao" in entry else None
+            )
+            pv_status_verificacao2 = (
+                entry["pv_status_verificacao2"] if "pv_status_verificacao2" in entry else None
+            )
+        else:
+            pv_ano_aplicacao = None
+            pv_tipo_iniciativa = None
+            pv_tipo_iniciativa2 = None
+            pv_perigo_climatico = None
+            pv_perigo_climatico2 = None
+            pv_status_verificacao = None
+            pv_status_verificacao2 = None
+
         data = {
             "cariocas_atendidos": cariocas_atendidos,
             "coords": coords,
@@ -644,6 +703,14 @@ def transform_infopref_realizacao_to_firebase(
             "image_url": image_url,
             "investimento": investimento,
             "nome": nome,
+            "plano_verao": plano_verao,
+            "pv_ano_aplicacao": pv_ano_aplicacao,
+            "pv_perigo_climatico": pv_perigo_climatico,
+            "pv_perigo_climatico2": pv_perigo_climatico2,
+            "pv_status_verificacao": pv_status_verificacao,
+            "pv_status_verificacao2": pv_status_verificacao2,
+            "pv_tipo_iniciativa": pv_tipo_iniciativa,
+            "pv_tipo_iniciativa2": pv_tipo_iniciativa2,
         }
         log(f"Transformed entry: {data}")
         return {"id": to_snake_case(nome), "data": data}

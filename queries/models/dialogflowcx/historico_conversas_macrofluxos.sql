@@ -1,10 +1,20 @@
 WITH marked_conversations AS (
   WITH filtro_macrofluxos AS (
     SELECT DISTINCT
-        conversation_name
-    FROM rj-chatbot-dev.dialogflowcx.historico_conversas
+        h.conversation_name
+    FROM rj-chatbot-dev.dialogflowcx.historico_conversas as h
+    LEFT JOIN (
+      SELECT
+        conversation_name,
+        turn_position,
+        COUNT(*) AS contagem
+      FROM rj-chatbot-dev.dialogflowcx.historico_conversas
+      GROUP BY conversation_name, turn_position
+      HAVING COUNT(*) > 1
+    ) AS bc
+      ON h.conversation_name = bc.conversation_name
     WHERE
-        turn_position = 1
+        h.turn_position = 1
         AND
         (
           JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentFlow.displayName')) IN (
@@ -22,13 +32,13 @@ WITH marked_conversations AS (
             JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.currentPage.displayName')) = 'Menu Principal'
             AND request_time >= '2024-08-02'
           )
+          OR
+          (
+            JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.match.matchType')) = "PLAYBOOK"
+          )
         )
-        AND conversation_name NOT IN (
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-62510003786190",
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-37270003820798",
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/fcd7f325-6095-4ce1-9757-6cc028b8b554/sessions/protocol-73430003652037",
-          "projects/rj-chatbot-dev/locations/global/agents/29358e97-22d5-48e0-b6e0-fe32e70b67cd/environments/f288d64a-52f3-42f7-be7d-cac0b0f4957a/sessions/protocol-38990003782307")
-  ), #travazap filter
+        AND bc.conversation_name IS NULL
+  ), --travazap filter
 
   historico AS (
       SELECT
@@ -71,10 +81,10 @@ WITH marked_conversations AS (
           service_data_array[OFFSET(1)] AS estimativa_turnos_servico,
           service_data_array[OFFSET(2)] AS estimativa_turnos_menu,
           CASE
-              WHEN lag_codigo_servico_1746_1 IS NULL AND codigo_servico_1746 IS NOT NULL THEN 0
               WHEN lag_codigo_servico_1746_2 IS NOT NULL AND codigo_servico_1746 IS NULL THEN 1
-              WHEN lag_codigo_servico_1746_1 IS NOT NULL
-                  AND lag_codigo_servico_1746_1 != codigo_servico_1746 THEN 1
+              WHEN lag_codigo_servico_1746_1 IS NOT NULL AND lag_codigo_servico_1746_1 != codigo_servico_1746 THEN 1
+              WHEN lag_codigo_servico_1746_2 IS NOT NULL AND lag_codigo_servico_1746_1 IS NULL AND codigo_servico_1746 IS NOT NULL THEN 1
+              WHEN lag_codigo_servico_1746_1 IS NULL AND codigo_servico_1746 IS NOT NULL THEN 0
               ELSE 0
           END AS isNewPart
       FROM historico_with_lag
@@ -168,7 +178,14 @@ compilation_0 AS (
 SELECT
     n.new_conversation_id,
     #INITCAP(n.macrotema) as macrotema,
-    INITCAP(s.nome_servico) as nome_servico_1746,
+    CASE
+      WHEN LOWER(nome_servico) LIKE "%matricula%"
+        OR LOWER(nome_servico) LIKE "%matrícula%"
+      THEN "Matrícula Municipal"
+      WHEN LOWER(nome_servico) LIKE "%cadunico%"
+        OR LOWER(nome_servico) LIKE "%cadúnico%"
+      THEN "CadÚnico"
+    ELSE INITCAP(s.nome_servico) END as nome_servico_1746,
     #n.mensagem_cidadao,
     #n.resposta_bot,
     n.turn_position,
