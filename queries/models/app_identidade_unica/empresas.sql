@@ -5,7 +5,7 @@
         partition_by={
             "field": "cnpj_particao",
             "data_type": "int64",
-            "range": {"start": 0, "end": 99999999999999, "interval": 34722222},
+            "range": {"start": 0, "end": 99999999999999, "interval": 34722222223},
         },
     )
 }}
