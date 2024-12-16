@@ -34,10 +34,10 @@ hist AS (
   SELECT
     h.*
   FROM `rj-chatbot-dev.dialogflowcx.historico_conversas` AS h
-  LEFT JOIN {{ ref('fim_conversas_da') }} AS da
-    ON STARTS_WITH(da.conversation_name, h.conversation_name)
-  LEFT JOIN {{ ref('fim_conversas_macrofluxos') }} AS mf
-    ON STARTS_WITH(mf.conversation_name, h.conversation_name)
+  LEFT JOIN `rj-chatbot-dev.dialogflowcx.fim_conversas_da` AS da
+    ON da.conversa_completa_id = h.conversation_name
+  LEFT JOIN `rj-chatbot-dev.dialogflowcx.fim_conversas_macrofluxos` AS mf
+    ON mf.conversa_completa_id = h.conversation_name
   LEFT JOIN duplicate_conversations AS bc
     ON h.conversation_name = bc.conversation_name
        AND h.turn_position = bc.turn_position
