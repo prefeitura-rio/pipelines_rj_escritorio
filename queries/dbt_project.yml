@@ -15,7 +15,6 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
-
 models:
   +persist_docs:
     relation: true
@@ -41,3 +40,9 @@ models:
     ai_vision_detection:
       +materialized: table
       +schema: ai_vision_detection
+    identidade_unica:
+      +materialized: table
+      +schema: identidade_unica
+    dialogflowcx:
+      +materialized: table
+      +schema: dialogflowcx

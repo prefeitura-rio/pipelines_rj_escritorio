@@ -5,7 +5,12 @@ from time import sleep
 from typing import Any, List, Tuple
 
 import pandas as pd
-from google.api_core.exceptions import FailedPrecondition, NotFound, ResourceExhausted
+from google.api_core.exceptions import (
+    BadRequest,
+    FailedPrecondition,
+    NotFound,
+    ResourceExhausted,
+)
 from google.cloud import asset, bigquery
 from google.cloud.asset_v1.types.asset_service import (
     BatchGetEffectiveIamPoliciesResponse,
@@ -160,13 +165,19 @@ def list_tables(project_id: str, credentials: service_account.Credentials) -> Li
     datasets = client.list_datasets()
     tables = []
 
-    for dataset in datasets:
-        dataset_ref = client.dataset(dataset.dataset_id)
-        dataset_tables = client.list_tables(dataset_ref)
-        for table in dataset_tables:
-            tables.append(
-                f"//bigquery.googleapis.com/projects/{project_id}/datasets/{table.dataset_id}/tables/{table.table_id}"  # noqa
-            )
+    try:
+        for dataset in datasets:
+            dataset_ref = client.dataset(dataset.dataset_id)
+            dataset_tables = client.list_tables(dataset_ref)
+            for table in dataset_tables:
+                tables.append(
+                    f"//bigquery.googleapis.com/projects/{project_id}/datasets/{table.dataset_id}/tables/{table.table_id}"  # noqa
+                )
+    except BadRequest as exc:
+        if "has not enabled BigQuery" in str(exc):
+            log(f"Project {project_id} has not enabled BigQuery.", level="warning")
+            return []
+        raise exc
 
     return tables
 

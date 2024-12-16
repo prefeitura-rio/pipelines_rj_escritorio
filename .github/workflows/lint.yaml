@@ -22,14 +22,14 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Set up Poetry and upgrade pip
+      - name: Set up uv and upgrade pip
         run: |
-          pip install -U pip "poetry<1.8"
+          pip install -U pip uv
 
       - name: Install dependencies
         run: |
-          poetry config virtualenvs.create false && poetry install --with dev --with ci
+          uv sync --extra dev --extra ci
 
       - name: Lint with black, isort and flake8
         run: |
-          task lint
+          uv run task lint

@@ -22,9 +22,8 @@ from PIL import Image
 from prefect import task
 from prefeitura_rio.pipelines_utils.gcs import upload_file_to_bucket
 from prefeitura_rio.pipelines_utils.infisical import get_secret
-from prefeitura_rio.pipelines_utils.io import to_partitions
 from prefeitura_rio.pipelines_utils.logging import log
-from prefeitura_rio.pipelines_utils.pandas import parse_date_columns
+from prefeitura_rio.pipelines_utils.pandas import parse_date_columns, to_partitions
 from prefeitura_rio.pipelines_utils.redis_pal import get_redis_client
 from prefeitura_rio.pipelines_utils.time import TimeoutError
 from redis_pal import RedisPal
