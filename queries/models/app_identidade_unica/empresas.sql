@@ -15,6 +15,7 @@ with
         select *,
         from `basedosdados.br_me_cnpj.estabelecimentos`
         where sigla_uf = 'RJ' and id_municipio = '3304557'
+        qualify row_number() over (partition by cnpj order by data desc) = 1 -- get only the most recent
     ),
 
     dicionario_tipo as (
