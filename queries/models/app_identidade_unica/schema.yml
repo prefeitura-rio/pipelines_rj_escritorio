@@ -1,0 +1,103 @@
+version: 2
+
+models:
+  - name: empresas
+    description: Tabela de CNPJs dos estabelecimentos do Rio de Janeiro
+    columns:
+      - name: data
+        description: Data
+      - name: cnpj
+        description: CNPJ
+      - name: cnpj_basico
+        description: CNPJ Básico (8 primeiros dígitos)
+      - name: cnpj_ordem
+        description: CNPJ Ordem
+      - name: cnpj_dv
+        description: CNPJ Dígito Verificador
+      - name: identificador_matriz_filial
+        description: Identificador de Matriz ou Filial
+      - name: nome_fantasia
+        description: Nome Fantasia
+      - name: situacao_cadastral
+        description: Situação Cadastral
+      - name: data_situacao_cadastral
+        description: Data da Situação Cadastral
+      - name: motivo_situacao_cadastral
+        description: Motivo da Situação Cadastral
+      - name: nome_cidade_exterior
+        description: Nome da Cidade no Exterior
+      - name: pais
+        description: ID País
+      - name: data_inicio_atividade
+        description: Data de Início da Atividade
+      - name: tipo_logradouro
+        description: Tipo de Logradouro
+      - name: logradouro
+        description: Logradouro
+      - name: numero
+        description: Número
+      - name: complemento
+        description: Complemento
+      - name: bairro
+        description: Bairro
+      - name: cep
+        description: CEP
+      - name: ddd_1
+        description: DDD 1
+      - name: telefone_1
+        description: Telefone 1
+      - name: ddd_2
+        description: DDD 2
+      - name: telefone_2
+        description: Telefone 2
+      - name: ddd_fax
+        description: DDD Fax
+      - name: fax
+        description: Fax
+      - name: email
+        description: Email
+      - name: situacao_especial
+        description: Situação Especial
+      - name: data_situacao_especial
+        description: Data da Situação Especial
+
+      - name: cnae
+        description: Informações sobre CNAE 2.0
+      - name: cnae.cnae
+        description: Identificador do subgrupo do CNAE
+      - name: cnae.descricao_subclasse
+        description: Descrição da subclasse do CNAE
+      - name: cnae.descricao_classe
+        description: Descrição da classe do CNAE
+      - name: cnae.descricao_grupo
+        description: Descrição do grupo do CNAE
+      - name: cnae.descricao_divisao
+        description: Descrição da divisão do CNAE
+      - name: cnae.descricao_secao
+        description: Descrição da seção do CNAE
+
+      - name: socios
+        description: Informações sobre os sócios
+      - name: socios.tipo
+        description: Tipo de sócio, se é pessoa física ou jurídica
+      - name: socios.nome
+        description: Nome do sócio
+      - name: socios.documento
+        description: Documento (CPF mascarado ou CNPJ)
+      - name: socios.qualificacao
+        description: Qualificação do sócio
+      - name: socios.data_entrada_sociedade
+        description: Data de entrada na sociedade
+      - name: socios.pais
+        description: ID País
+      - name: socios.cpf_representante_legal
+        description: CPF mascarado do Representante Legal
+      - name: socios.nome_representante_legal
+        description: Nome do Representante Legal
+      - name: socios.qualificacao_representante_legal
+        description: Qualificação do Representante Legal
+      - name: socios.faixa_etaria
+        description: Faixa Etária
+
+      - name: cnpj_particao
+        description: CNPJ para particionamento
