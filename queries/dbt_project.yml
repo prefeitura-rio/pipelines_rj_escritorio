@@ -46,3 +46,6 @@ models:
     dialogflowcx:
       +materialized: table
       +schema: dialogflowcx
+    app_identidade_unica:
+      +materialized: table
+      +schema: app_identidade_unica
