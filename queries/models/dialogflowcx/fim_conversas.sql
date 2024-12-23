@@ -149,8 +149,7 @@ FROM hist
 INNER JOIN ultima_interacao as ui
   ON hist.conversation_name = ui.conversation_name AND hist.turn_position = ui.last_turn
 INNER JOIN primeira_interacao as pi
-  ON hist.conversation_name = pi.conversation_name
-ORDER BY request_time DESC)
+  ON hist.conversation_name = pi.conversation_name)
 
 SELECT
   *,
