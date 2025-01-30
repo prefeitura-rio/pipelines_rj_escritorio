@@ -95,6 +95,9 @@ def generate_message(
     Returns:
         str: The message to be sent through Discord webhook.
     """
+    # Initialize a flag to notify Gabriel
+    notify_gabriel = False
+
     # Start with a header message and a placeholder for the final emoji
     message = "<emoji> **Healthcheck report:**\n\n"
 
@@ -105,6 +108,7 @@ def generate_message(
     if status_data_relay["status"] != "OK":
         message += "- ❌ Data relay service is **down**.\n"
         emoji = "❌"
+        notify_gabriel = True
     else:
         message += "- Data relay service is **up**.\n"
         for queue in status_data_relay["queues"]:
@@ -113,6 +117,7 @@ def generate_message(
             if messages_to_process >= min_messages_critical:
                 queue_emoji = "❌ "
                 emoji = "❌"
+                notify_gabriel = True
             elif messages_to_process >= min_messages_warning:
                 queue_emoji = "⚠️ "
                 emoji = "⚠️"
@@ -128,9 +133,14 @@ def generate_message(
     else:
         message += "- ❌ Civitas API is **down**.\n"
         emoji = "❌"
+        notify_gabriel = True
 
     # Replace the placeholder with the final emoji
     message = message.replace("<emoji>", emoji)
+
+    # Notify Gabriel if necessary
+    if notify_gabriel:
+        message += "\n\ncc: @218800040137719809"
 
     return message
 
