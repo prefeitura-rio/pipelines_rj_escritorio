@@ -414,7 +414,7 @@ def log_task(msg: str) -> None:
 
 @task(nout=2, checkpoint=False)
 def split_by_gestao(
-    realizacoes: List[Dict[str, Any]]
+    realizacoes: List[Dict[str, Any]],
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Split the realizacoes by gestao.
