@@ -17,7 +17,7 @@ primeira_interacao AS (
   FROM `rj-chatbot-dev.dialogflowcx.historico_conversas`
   WHERE
     turn_position = 1
-    # AND `rj-chatbot-dev.dialogflowcx.inicial_sentences`(JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')))
+    -- AND `rj-chatbot-dev.dialogflowcx.inicial_sentences`(JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.text')))
     AND JSON_VALUE(JSON_EXTRACT(response, '$.queryResult.match.matchType')) != "PLAYBOOK"
 ),
 
@@ -30,14 +30,14 @@ duplicate_conversations AS (
   GROUP BY conversation_name, turn_position
   HAVING COUNT(*) > 1
 ),
-hist AS (_
+hist AS (
   SELECT
     h.*
   FROM `rj-chatbot-dev.dialogflowcx.historico_conversas` AS h
-  LEFT JOIN {{ ref('fim_conversas_da') }} AS da
-    ON STARTS_WITH(da.conversation_name, h.conversation_name)
-  LEFT JOIN {{ ref('fim_conversas_macrofluxos') }} AS mf
-    ON STARTS_WITH(mf.conversation_name, h.conversation_name)
+  LEFT JOIN `rj-chatbot-dev.dialogflowcx.fim_conversas_da` AS da
+    ON da.conversa_completa_id = h.conversation_name
+  LEFT JOIN `rj-chatbot-dev.dialogflowcx.fim_conversas_macrofluxos` AS mf
+    ON mf.conversa_completa_id = h.conversation_name
   LEFT JOIN duplicate_conversations AS bc
     ON h.conversation_name = bc.conversation_name
        AND h.turn_position = bc.turn_position
@@ -149,8 +149,7 @@ FROM hist
 INNER JOIN ultima_interacao as ui
   ON hist.conversation_name = ui.conversation_name AND hist.turn_position = ui.last_turn
 INNER JOIN primeira_interacao as pi
-  ON hist.conversation_name = pi.conversation_name
-ORDER BY request_time DESC)
+  ON hist.conversation_name = pi.conversation_name)
 
 SELECT
   *,
