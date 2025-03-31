@@ -13,7 +13,9 @@ with
             nullif(json_value(data, '$.query'), "") as query,
             nullif(json_value(data, '$.tipo_dispositivo'), "") as tipo_dispositivo,
             cast(nullif(json_value(data, '$.posicao'), "") as int64) + 1 as posicao,
-
+            cast(
+                nullif(json_value(data, '$.noticias_toggled'), "") as bool
+            ) as noticias_toggled,
             nullif(json_value(data, '$.objeto_clicado.id'), "") as id,
             nullif(json_value(data, '$.objeto_clicado.id_1746'), "") as id_1746,
             nullif(json_value(data, '$.objeto_clicado.id_pref_rio'), "") as id_pref_rio,
