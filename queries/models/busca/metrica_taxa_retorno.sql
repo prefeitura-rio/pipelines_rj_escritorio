@@ -5,16 +5,22 @@ with
     _source_buscas as (
         select
             nullif(json_value(data, '$.session_id'), "") as session_id,
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) as search_date,  -- Data da busca
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as search_date,  -- Data da busca
             safe.parse_timestamp(
                 '%d-%m-%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             ) as search_timestamp  -- Timestamp exato da busca
         -- Apenas session_id, date e timestamp são necessários das buscas
         from `rj-chatbot.busca.buscas`
         where
             json_value(data, '$.session_id') is not null  -- Ignora eventos sem session_id
-            and json_value(data, '$.date') is not null
+            and replace(json_value(data, '$.date'), '/', '-') is not null
             and json_value(data, '$.time') is not null
     -- and json_value(data, '$.session_id') in
     -- ('34db7a33-b050-492c-9979-12d629e87f7b',
@@ -23,16 +29,22 @@ with
     _source_cliques as (
         select
             nullif(json_value(data, '$.session_id'), "") as session_id,
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) as click_date,  -- Data do clique
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as click_date,  -- Data do clique
             safe.parse_timestamp(
                 '%d-%m-%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             ) as click_timestamp  -- Timestamp exato do clique
         -- Apenas session_id, date e timestamp são necessários dos cliques
         from `rj-chatbot.busca.cliques`
         where
             json_value(data, '$.session_id') is not null  -- Ignora eventos sem session_id
-            and json_value(data, '$.date') is not null
+            and replace(json_value(data, '$.date'), '/', '-') is not null
             and json_value(data, '$.time') is not null
     -- and json_value(data, '$.session_id') in
     -- ('34db7a33-b050-492c-9979-12d629e87f7b',

@@ -5,11 +5,14 @@ with
     _source_buscas as (
         select
             nullif(json_value(data, '$.session_id'), "") as session_id,
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) as date,
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as date,
             nullif(json_value(data, '$.query'), "") as query
         from `rj-chatbot.busca.buscas`
         where
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) is not null
+            safe.parse_date('%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-'))
+            is not null
             and nullif(json_value(data, '$.session_id'), "") is not null  -- Necessário para agrupar
             and nullif(json_value(data, '$.query'), "") is not null  -- Ignora buscas vazias
     ),

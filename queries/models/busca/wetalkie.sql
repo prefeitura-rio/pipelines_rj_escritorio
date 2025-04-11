@@ -2,10 +2,16 @@ with
     _source_wetalkie as (
 
         select
-            safe.parse_date('%d/%m/%Y', json_value(data, '$.date')) as date,
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as date,
             safe.parse_timestamp(
-                '%d/%m/%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                '%d-%m-%YT%H:%M:%S',
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             ) as timestamp,
             nullif(json_value(data, '$.session_id'), "") as session_id,
             nullif(json_value(data, '$.num_wpp'), "") as num_wpp,
@@ -34,10 +40,16 @@ with
 
     _source_wetalkie_avaliacoes as (
         select
-            safe.parse_date('%d/%m/%Y', json_value(data, '$.date')) as date,
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as date,
             safe.parse_timestamp(
-                '%d/%m/%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                '%d-%m-%YT%H:%M:%S',
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             ) as timestamp,
             nullif(json_value(data, '$.session_id'), "") as session_id,
             nullif(json_value(data, '$.num_wpp'), "") as num_wpp,

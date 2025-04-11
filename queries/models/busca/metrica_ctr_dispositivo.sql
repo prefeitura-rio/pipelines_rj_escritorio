@@ -3,22 +3,28 @@
 with
     _source_buscas as (
         select
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) as search_date,
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as search_date,
             nullif(json_value(data, '$.tipo_dispositivo'), "") as tipo_dispositivo
         -- Necessário: date, tipo_dispositivo
         from `rj-chatbot.busca.buscas`
         where
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) is not null
+            safe.parse_date('%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-'))
+            is not null
             and nullif(json_value(data, '$.tipo_dispositivo'), "") is not null  -- Garante que o dispositivo é conhecido
     ),
     _source_cliques as (
         select
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) as click_date,
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as click_date,
             nullif(json_value(data, '$.tipo_dispositivo'), "") as tipo_dispositivo
         -- Necessário: date, tipo_dispositivo
         from `rj-chatbot.busca.cliques`
         where
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) is not null
+            safe.parse_date('%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-'))
+            is not null
             and nullif(json_value(data, '$.tipo_dispositivo'), "") is not null  -- Garante que o dispositivo é conhecido
     ),
     -- Passo 1: Contar buscas por dia e dispositivo

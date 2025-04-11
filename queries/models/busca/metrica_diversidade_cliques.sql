@@ -12,13 +12,16 @@
 with
     _source_cliques as (
         select
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) as click_date,
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as click_date,
             nullif(json_value(data, '$.query'), "") as query_term,  -- O termo buscado associado ao clique
             nullif(json_value(data, '$.objeto_clicado.id'), "") as clicked_object_id
         from `rj-chatbot.busca.cliques`
         -- Filtros para garantir que os dados necessários para a métrica estão presentes
         where
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) is not null
+            safe.parse_date('%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-'))
+            is not null
             and nullif(json_value(data, '$.query'), "") is not null  -- Query não pode ser nula
             and nullif(json_value(data, '$.objeto_clicado.id'), "") is not null  -- ID do objeto não pode ser nulo
     ),

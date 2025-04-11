@@ -6,19 +6,32 @@ with
     _source_buscas as (
         select
             nullif(json_value(data, '$.session_id'), "") as session_id,
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) as search_date,
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as search_date,
             safe.parse_timestamp(
                 '%d-%m-%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             ) as search_timestamp
         -- Necessário: session_id, date, timestamp
         from `rj-chatbot.busca.buscas`
         where
             nullif(json_value(data, '$.session_id'), "") is not null
-            and safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) is not null
+            and safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            )
+            is not null
             and safe.parse_timestamp(
                 '%d-%m-%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             )
             is not null
     ),
@@ -27,7 +40,11 @@ with
             nullif(json_value(data, '$.session_id'), "") as session_id,
             safe.parse_timestamp(
                 '%d-%m-%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             ) as click_timestamp,
             cast(nullif(json_value(data, '$.posicao'), "") as int64) + 1 as posicao
         -- Necessário: session_id, timestamp, posicao
@@ -36,7 +53,11 @@ with
             nullif(json_value(data, '$.session_id'), "") is not null
             and safe.parse_timestamp(
                 '%d-%m-%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             )
             is not null
             and cast(nullif(json_value(data, '$.posicao'), "") as int64) is not null

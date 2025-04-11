@@ -3,17 +3,23 @@ with
     _source_buscas as (
         select
             nullif(json_value(data, '$.session_id'), "") as session_id,
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) as search_date,
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as search_date,
             safe.parse_timestamp(
                 '%d-%m-%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             ) as search_timestamp,
             nullif(json_value(data, '$.portal_origem'), "") as portal_origem
         -- Campos necessários: session_id, date, timestamp, portal_origem
         from `rj-chatbot.busca.buscas`
         where
             json_value(data, '$.session_id') is not null
-            and json_value(data, '$.date') is not null
+            and replace(json_value(data, '$.date'), '/', '-') is not null
             and json_value(data, '$.time') is not null
             and json_value(data, '$.portal_origem') is not null  -- Importante para o group by
     ),
@@ -22,13 +28,17 @@ with
             nullif(json_value(data, '$.session_id'), "") as session_id,
             safe.parse_timestamp(
                 '%d-%m-%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             ) as click_timestamp
         -- Campos necessários: session_id, timestamp (para comparar com busca)
         from `rj-chatbot.busca.cliques`
         where
             json_value(data, '$.session_id') is not null
-            and json_value(data, '$.date') is not null
+            and replace(json_value(data, '$.date'), '/', '-') is not null
             and json_value(data, '$.time') is not null
     ),
     -- Passo 1: Para cada busca, encontrar o timestamp da próxima busca na mesma sessão

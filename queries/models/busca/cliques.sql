@@ -4,10 +4,16 @@ with
             updated_at,
 
             nullif(json_value(data, '$.session_id'), "") as session_id,
-            safe.parse_date('%d-%m-%Y', json_value(data, '$.date')) as date,
+            safe.parse_date(
+                '%d-%m-%Y', replace(json_value(data, '$.date'), '/', '-')
+            ) as date,
             safe.parse_timestamp(
                 '%d-%m-%YT%H:%M:%S',
-                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+                concat(
+                    replace(json_value(data, '$.date'), '/', '-'),
+                    'T',
+                    json_value(data, '$.time')
+                )
             ) as timestamp,
             nullif(json_value(data, '$.portal_origem'), "") as portal_origem,
             nullif(json_value(data, '$.query'), "") as query,
@@ -42,7 +48,10 @@ with
             ) as informacoes_complementares,
 
             safe.parse_date(
-                '%d-%m-%Y', json_value(data, '$.objeto_clicado.ultima_atualizacao')
+                '%d-%m-%Y',
+                replace(
+                    json_value(data, '$.objeto_clicado.ultima_atualizacao'), '/', '-'
+                )
             ) as data_atualizacao,
             nullif(
                 json_value(data, '$.objeto_clicado.orgao_gestor'), ""
