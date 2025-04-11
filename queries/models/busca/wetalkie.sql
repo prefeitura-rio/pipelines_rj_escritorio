@@ -9,6 +9,7 @@ with
             ) as timestamp,
             nullif(json_value(data, '$.session_id'), "") as session_id,
             nullif(json_value(data, '$.num_wpp'), "") as num_wpp,
+            nullif(json_value(data, '$.query_original'), "") as query_original,
             nullif(json_value(data, '$.query'), "") as query,
             nullif(json_value(data, '$.transcript'), "") as transcript,
             nullif(json_value(data, '$.ai_response.ai_overview'), "") as ai_overview,
@@ -29,7 +30,45 @@ with
             safe_cast(json_value(data, '$.ai_response.top_p') as numeric) as top_p
 
         from `rj-chatbot.wetalkie.buscas_staging`
+    ),
+
+    _source_wetalkie_avaliacoes as (
+        select
+            safe.parse_date('%d/%m/%Y', json_value(data, '$.date')) as date,
+            safe.parse_timestamp(
+                '%d/%m/%YT%H:%M:%S',
+                concat(json_value(data, '$.date'), 'T', json_value(data, '$.time'))
+            ) as timestamp,
+            nullif(json_value(data, '$.session_id'), "") as session_id,
+            nullif(json_value(data, '$.num_wpp'), "") as num_wpp,
+            cast(nullif(json_value(data, '$.good_rate'), "") as bool) as good_rate
+        from `rj-chatbot.wetalkie.avaliacoes_staging`
     )
 
-select *
-from _source_wetalkie
+select
+    a.date,
+    a.timestamp,
+    a.session_id,
+    a.num_wpp,
+    a.query_original,
+    a.query,
+    a.transcript,
+    case when a.transcript is null then 'texto' else 'audio' end as tipo_mensagem,
+    a.ai_overview,
+    a.portal_origem,
+    a.tipo_dispositivo,
+    a.titles,
+    a.api_results,
+    a.audio_gcs_uri,
+    a.llm_reorder,
+    a.prompt_raw,
+    a.system_prompt,
+    a.temperature,
+    a.top_k,
+    a.top_p,
+    b.good_rate
+from _source_wetalkie a
+left join
+    _source_wetalkie_avaliacoes b
+    on a.session_id = b.session_id
+    and a.num_wpp = b.num_wpp
