@@ -65,9 +65,7 @@ def inject_bd_credentials(environment: str = "dev", force_injection=False) -> No
     environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/credentials.json"
 
 
-def authenticated_task(
-    fn: Callable = None, **task_init_kwargs: Any
-) -> Union[
+def authenticated_task(fn: Callable = None, **task_init_kwargs: Any) -> Union[
     prefect.tasks.core.function.FunctionTask,
     Callable[[Callable], prefect.tasks.core.function.FunctionTask],
 ]:
